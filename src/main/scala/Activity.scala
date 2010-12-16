@@ -1,14 +1,11 @@
 package net.tokyoenvious.droid.pictumblr
 
-import _root_.android.app.Activity
-import _root_.android.os.Bundle
-import _root_.android.widget.TextView
+import android.app.Activity
+import android.os.Bundle
 
 class PicTumblrActivity extends Activity {
-  override def onCreate(savedInstanceState: Bundle) {
-    super.onCreate(savedInstanceState)
-    setContentView(new TextView(this) {
-      setText("hello, world")
-    })
-  }
+    override def onCreate(savedInstanceState : Bundle) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.main)
+    }
 }
