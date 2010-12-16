@@ -1,7 +1,7 @@
 import sbt._
 
 trait Defaults {
-  def androidPlatformName = "android-2.1"
+  def androidPlatformName = "android-7"
 }
 class PicTumblr(info: ProjectInfo) extends ParentProject(info) {
   override def shouldCheckOutputDirectories = false
