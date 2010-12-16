@@ -1,0 +1,10 @@
+<manifest 
+package="net.tokyoenvious.droid.pictumblr.tests" xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-sdk android:minSdkVersion="7"></uses-sdk>
+    <application>
+        <uses-library android:name="android.test.runner"></uses-library>
+    </application>
+    <instrumentation 
+    android:label="Tests" android:targetPackage="net.tokyoenvious.droid.pictumblr" android:name="android.test.InstrumentationTestRunner">
+</instrumentation>
+</manifest>
