@@ -1,0 +1,9 @@
+project/boot/
+project/build/target/
+project/plugins/lib_managed/
+project/plugins/project/
+project/plugins/src_managed/
+project/plugins/target/
+src/main/java/
+target/
+tests/target/
