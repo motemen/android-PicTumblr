@@ -7,3 +7,4 @@ project/plugins/target/
 src/main/java/
 target/
 tests/target/
+lib_managed/
