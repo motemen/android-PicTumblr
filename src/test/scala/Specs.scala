@@ -8,9 +8,9 @@ class TumblrSpec extends FlatSpec with ShouldMatchers {
         val email    = System.getenv("TUMBLR_EMAIL")
         val password = System.getenv("TUMBLR_PASSWORD")
 
-        Tumblr.authenticate(email, password) should equal (true)
+        Tumblr.authenticate(email, password).isDefined should equal (true)
     }
     "Invalid authentication" should "fail" in {
-        Tumblr.authenticate("", "") should equal (false)
+        Tumblr.authenticate("", "") should equal (None)
     }
 }

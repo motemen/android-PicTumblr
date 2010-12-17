@@ -22,8 +22,6 @@ object Tumblr {
             writer.write("email=" + email + "&password=" + password) // FIXME
             writer.close
 
-            // TODO
-
             return (XML.load(http.getInputStream) \ "tumblelog").elements.next.attribute("title").map(_.text)
         } catch {
             case _ => return None
