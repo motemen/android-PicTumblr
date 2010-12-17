@@ -10,6 +10,7 @@
     android:text="Email address"
     />
 <EditText  
+    android:id="@+id/email"
     android:layout_width="fill_parent" 
     android:layout_height="wrap_content" 
     android:singleLine="true"
@@ -20,11 +21,11 @@
     android:text="Password"
     />
 <EditText  
+    android:id="@+id/password"
     android:layout_width="fill_parent" 
     android:layout_height="wrap_content" 
     android:singleLine="true"
     />
-<!-- XXX id に android: いるのかな -->
 <Button
     android:id="@+id/login_button"
     android:layout_width="fill_parent" 

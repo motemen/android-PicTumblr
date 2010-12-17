@@ -11,7 +11,7 @@ object Tumblr {
 
     // とりあえずタイトルを返す
     def authenticate (email : String, password : String) : Option[String] = {
-        val url = new URL("http://www.tumblr.com/api/authenticate")
+        val url = new URL(API_ROOT + "authenticate")
         val http = url.openConnection.asInstanceOf[HttpURLConnection]
         http.setRequestMethod("POST")
         http.setDoOutput(true)
