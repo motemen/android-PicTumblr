@@ -4,12 +4,12 @@ android:versionName="0.1" android:versionCode="1" package="net.tokyoenvious.droi
     <uses-permission android:name="android.permission.INTERNET" />
     <application android:icon="@drawable/app_icon" android:label="@string/app_name">
         <activity android:label="@string/app_name" android:name=".PicTumblrActivity">
-        </activity>
-        <activity android:label="@string/app_name" android:name=".PicTumblrSettingActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"></action>
                 <category android:name="android.intent.category.LAUNCHER"></category>
             </intent-filter>
+        </activity>
+        <activity android:label="@string/app_name" android:name=".PicTumblrPrefernceActivity">
         </activity>
     </application>
 </manifest>
