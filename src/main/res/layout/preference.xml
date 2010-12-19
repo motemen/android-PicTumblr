@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <EditTextPreference
-        android:key="email"
-        android:title="Email"
-        android:singleLine="true"
-        />
-    <EditTextPreference
-        android:key="password"
-        android:title="Password"
-        android:singleLine="true"
-        android:password="true"
-        />
+    <PreferenceCategory android:title="Account">
+        <EditTextPreference
+            android:key="email"
+            android:title="Email"
+            android:singleLine="true"
+            />
+        <EditTextPreference
+            android:key="password"
+            android:title="Password"
+            android:singleLine="true"
+            android:password="true"
+            />
+    </PreferenceCategory>
 </PreferenceScreen>

@@ -1,6 +1,7 @@
 package net.tokyoenvious.droid.pictumblr
 
 import android.preference.PreferenceActivity
+import android.preference.EditTextPreference
 import android.os.Bundle
 import android.widget
 import android.view.View
