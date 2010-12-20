@@ -22,7 +22,7 @@ class PicTumblrActivity extends Activity {
 
     override def onCreateOptionsMenu (menu : Menu) : Boolean = {
         val itemRefresh = menu.add(Menu.NONE, MENU_ITEM_ID_REFRESH, Menu.NONE, "Refresh")
-        // itemRefresh.setIcon(android.R.drawable.ic_menu_refresh)
+        itemRefresh.setIcon(R.drawable.ic_menu_refresh)
 
         val itemSetting = menu.add(Menu.NONE, MENU_ITEM_ID_SETTING, Menu.NONE, "Setting")
         itemSetting.setIcon(android.R.drawable.ic_menu_preferences)
@@ -44,20 +44,26 @@ class PicTumblrActivity extends Activity {
         startActivity(intent)
     }
 
-    def updateDashboard () {
+    def getTumblr () : Tumblr = {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val email    = prefs.getString("email", "")
         val password = prefs.getString("password", "")
 
         if (email.length == 0 || password.length == 0) {
             startSettingActivity()
-            return // FIXME どうすべき?
+            // TODO どうすべき？
         }
 
+        return new Tumblr(email, password)
+    }
+
+    def updateDashboard () {
         toast("Logging in...")
 
+        val tumblr = getTumblr()
+
         try {
-            Tumblr.authenticate(email, password) match {
+            tumblr.authenticate() match {
                 case Some(title) => {
                     toast("authentication succeeded: " + title)
                     // TODO
