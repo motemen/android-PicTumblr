@@ -35,6 +35,8 @@ class Tumblr (email : String, password : String) {
     }
 
     def dashboard () : Seq[Post] = {
+        Log.d("Tumblr.dashboard", "Requesting " + API_ROOT + "dashboard")
+
         var url = new URL(API_ROOT + "dashboard")
         val http = url.openConnection.asInstanceOf[java.net.HttpURLConnection]
         http.setRequestMethod("POST")
@@ -42,16 +44,32 @@ class Tumblr (email : String, password : String) {
         http.connect
 
         val writer = new java.io.OutputStreamWriter(http.getOutputStream)
-        writer.write(mkPostString("type" -> "photo"))
+        writer.write(mkPostString('type -> "photo"))
         writer.close
 
-        (XML.load(http.getInputStream) \ "posts" \ "post")
+        ( XML.load(http.getInputStream) \ "posts" \ "post" )
             .map(postElem => PhotoPost((postElem \ "photo-url").first.text))
     }
 
-    def mkPostString (params : (String, String)*) : String = {
-        ( Map("email" -> email, "password" -> password) ++ params )
-            .map { case (key, value) => key + "=" + URLEncoder.encode(value) }
+    /*
+    private def makeApiRequest (function : String, params : (Symbol, String)*) : scala.xml.Elem = {
+        var url = new URL(API_ROOT + function)
+        val http = url.openConnection.asInstanceOf[java.net.HttpURLConnection]
+        http.setRequestMethod("POST")
+        http.setDoOutput(true)
+        http.connect
+
+        val writer = new java.io.OutputStreamWriter(http.getOutputStream)
+        writer.write(mkPostString(params))
+        writer.close
+
+        return XML.load(http.getInputStream)
+    }
+    */
+
+    private def mkPostString (params : (Symbol, String)*) : String = {
+        ( Map('email -> email, 'password -> password) ++ params )
+            .map { case (key, value) => key.name + "=" + URLEncoder.encode(value) }
                 .mkString("&")
     }
 }

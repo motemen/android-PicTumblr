@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Toast
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ImageView
 import android.content.Intent
 import android.preference.PreferenceManager
 import android.util.Log
@@ -57,7 +58,7 @@ class PicTumblrActivity extends Activity {
         return new Tumblr(email, password)
     }
 
-    def updateDashboard () {
+    def login () {
         toast("Logging in...")
 
         val tumblr = getTumblr()
@@ -65,22 +66,58 @@ class PicTumblrActivity extends Activity {
         try {
             tumblr.authenticate() match {
                 case Some(title) => {
-                    toast("authentication succeeded: " + title)
-                    // TODO
+                    toast("Authentication succeeded: " + title)
                 }
                 case None => {
-                    toast("authentication failed.")
+                    toast("Authentication failed.")
                 }
             }
         } catch {
             case e => {
+                Log.e("PicTumblrActivity.login", e.toString)
+                toast("Something went wrong: " + e.getMessage)
+            }
+        }
+    }
+
+    def updateDashboard () {
+        toast("Updating dashboard...")
+
+        val tumblr = getTumblr()
+
+        try {
+            val posts = tumblr.dashboard()
+
+            Log.d("PicTumblrActivity.updateDashboard", "Creating drawable")
+
+            val url = posts.first.asInstanceOf[Tumblr#PhotoPost].photoUrl
+            val drawable = android.graphics.drawable.Drawable.createFromStream(
+                new java.net.URL(url).openConnection.getInputStream, url
+            )
+            assert(drawable != null, "drawable defined")
+
+            val imageView = new ImageView(this)
+            imageView.setImageDrawable(drawable)
+            assert(imageView != null, "imageView defined")
+
+            val layout = findViewById(R.id.layout_main).asInstanceOf[android.view.ViewGroup]
+            assert(layout != null, "layout defined")
+
+            layout.addView(imageView)
+
+            toast("Updated.")
+        } catch {
+            case e => {
                 Log.e("PicTumblrActivity.updateDashboard", e.toString)
-                toast("something went wrong: " + e.getMessage)
+                val stackTrace = e.getStackTrace
+                stackTrace foreach { s => Log.d("PicTumblrActivity.updateDashboard", s.toString()) }
+                toast("Something went wrong: " + e.getMessage)
             }
         }
     }
 
     def toast (message : String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show
+        Log.i("toast", message)
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show
     }
 }
