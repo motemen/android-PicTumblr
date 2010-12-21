@@ -9,6 +9,7 @@ import android.widget.ImageView
 import android.content.Intent
 import android.preference.PreferenceManager
 import android.util.Log
+import android.graphics.drawable.Drawable
 
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
@@ -87,24 +88,7 @@ class PicTumblrActivity extends Activity {
 
         try {
             val posts = tumblr.dashboard()
-
-            Log.d("PicTumblrActivity.updateDashboard", "Creating drawable")
-
-            val url = posts.first.asInstanceOf[Tumblr#PhotoPost].photoUrl
-            val drawable = android.graphics.drawable.Drawable.createFromStream(
-                new java.net.URL(url).openConnection.getInputStream, url
-            )
-            assert(drawable != null, "drawable defined")
-
-            val imageView = new ImageView(this)
-            imageView.setImageDrawable(drawable)
-            assert(imageView != null, "imageView defined")
-
-            val layout = findViewById(R.id.layout_main).asInstanceOf[android.view.ViewGroup]
-            assert(layout != null, "layout defined")
-
-            layout.addView(imageView)
-
+            enqueuePostsToView(posts)
             toast("Updated.")
         } catch {
             case e => {
@@ -114,6 +98,29 @@ class PicTumblrActivity extends Activity {
                 toast("Something went wrong: " + e.getMessage)
             }
         }
+    }
+
+    def enqueuePostsToView(posts : Seq[Tumblr#Post]) {
+        val layout = findViewById(R.id.layout_main).asInstanceOf[android.view.ViewGroup]
+        assert(layout != null, "layout defined")
+
+        posts foreach (
+            post => {
+                val url = post.asInstanceOf[Tumblr#PhotoPost].photoUrl
+                Log.d("PicTumblrActivity.enqueuePostsToView", "photoUrl: " + url)
+
+                val drawable = Drawable.createFromStream(
+                    new java.net.URL(url).openConnection.getInputStream, url
+                )
+                if (drawable == null) {
+                    Log.i("PicTumblrActivity.enqueuePostsToView", "drawable is null: " + url)
+                } else {
+                    val imageView = new ImageView(this)
+                    imageView.setImageDrawable(drawable)
+                    layout.addView(imageView)
+                }
+            }
+        )
     }
 
     def toast (message : String) {
