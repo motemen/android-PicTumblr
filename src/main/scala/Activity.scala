@@ -11,6 +11,9 @@ import android.preference.PreferenceManager
 import android.util.Log
 import android.graphics.drawable.Drawable
 
+// import android.os.AsyncTask
+import net.tokyoenvious.droid.pictumblr.AsyncTask
+
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
@@ -109,6 +112,13 @@ class PicTumblrActivity extends Activity {
                 val url = post.asInstanceOf[Tumblr#PhotoPost].photoUrl
                 Log.d("PicTumblrActivity.enqueuePostsToView", "photoUrl: " + url)
 
+                val imageView = new ImageView(this)
+                layout.addView(imageView)
+
+                val task = new LoadPhotoTask(imageView)
+                task.execute(url)
+
+                /*
                 val drawable = Drawable.createFromStream(
                     new java.net.URL(url).openConnection.getInputStream, url
                 )
@@ -119,6 +129,7 @@ class PicTumblrActivity extends Activity {
                     imageView.setImageDrawable(drawable)
                     layout.addView(imageView)
                 }
+                */
             }
         )
     }
@@ -126,5 +137,17 @@ class PicTumblrActivity extends Activity {
     def toast (message : String) {
         Log.i("toast", message)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show
+    }
+}
+
+class LoadPhotoTask (imageView : ImageView) extends AsyncTask[String, java.lang.Void, Drawable] {
+    override def doInBackground (url : String) : Drawable = {
+        return Drawable.createFromStream(
+            new java.net.URL(url).openConnection.getInputStream, url
+        )
+    }
+
+    override def onPostExecute (drawable : Drawable) {
+        imageView.setImageDrawable(drawable)
     }
 }
