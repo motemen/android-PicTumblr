@@ -9,7 +9,7 @@ import android.widget.ImageView
 import android.content.Intent
 import android.preference.PreferenceManager
 import android.util.Log
-import android.graphics.drawable.Drawable
+import android.graphics._
 
 // import android.os.AsyncTask
 import net.tokyoenvious.droid.pictumblr.AsyncTask
@@ -117,19 +117,6 @@ class PicTumblrActivity extends Activity {
 
                 val task = new LoadPhotoTask(imageView)
                 task.execute(url)
-
-                /*
-                val drawable = Drawable.createFromStream(
-                    new java.net.URL(url).openConnection.getInputStream, url
-                )
-                if (drawable == null) {
-                    Log.i("PicTumblrActivity.enqueuePostsToView", "drawable is null: " + url)
-                } else {
-                    val imageView = new ImageView(this)
-                    imageView.setImageDrawable(drawable)
-                    layout.addView(imageView)
-                }
-                */
             }
         )
     }
@@ -140,14 +127,16 @@ class PicTumblrActivity extends Activity {
     }
 }
 
-class LoadPhotoTask (imageView : ImageView) extends AsyncTask[String, java.lang.Void, Drawable] {
-    override def doInBackground (url : String) : Drawable = {
-        return Drawable.createFromStream(
-            new java.net.URL(url).openConnection.getInputStream, url
+class LoadPhotoTask (imageView : ImageView) extends AsyncTask[String, java.lang.Void, Bitmap] {
+    override def doInBackground (url : String) : Bitmap = {
+        val options = new BitmapFactory.Options
+        options.inPreferredConfig = Bitmap.Config.RGB_565
+        return BitmapFactory.decodeStream(
+            new java.net.URL(url).openConnection.getInputStream, null, options
         )
     }
 
-    override def onPostExecute (drawable : Drawable) {
-        imageView.setImageDrawable(drawable)
+    override def onPostExecute (bitmap : Bitmap) {
+        imageView.setImageBitmap(bitmap)
     }
 }

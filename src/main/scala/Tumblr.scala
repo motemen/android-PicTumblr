@@ -35,7 +35,7 @@ class Tumblr (email : String, password : String) {
     }
 
     def dashboard () : Seq[Post] = {
-        ( makeApiRequest("dashboard", ('type -> "photo")) \ "posts" \ "post" )
+        ( makeApiRequest("dashboard", 'type -> "photo", 'num -> "5") \ "posts" \ "post" )
             .map {
                 postElem => (postElem \ "photo-url").reduceLeftOption {
                     (node1, node2) => {
