@@ -2,13 +2,12 @@ package net.tokyoenvious.droid.pictumblr
 
 import android.app.Activity
 import android.os.Bundle
-import android.content.Intent
 import android.preference.PreferenceManager
-import android.util.Log
 import android.view.{ View, ViewGroup, Menu, MenuItem }
 import android.graphics.{ Bitmap, BitmapFactory }
 import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView }
-import android.content.Context
+import android.content.{ Intent, Context }
+import android.util.Log
 
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
@@ -58,32 +57,11 @@ class PicTumblrActivity extends Activity {
         return new Tumblr(email, password)
     }
 
-    def login () {
-        toast("Logging in...")
-
-        val tumblr = getTumblr()
-
-        try {
-            tumblr.authenticate() match {
-                case Some(title) => {
-                    toast("Authentication succeeded: " + title)
-                }
-                case None => {
-                    toast("Authentication failed.")
-                }
-            }
-        } catch {
-            case e => {
-                Log.e("PicTumblrActivity.login", e.toString)
-                toast("Something went wrong: " + e.getMessage)
-            }
-        }
-    }
-
     def updateDashboard () {
         val tumblr = getTumblr()
+
         val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
-        val adapter = new TumblrPostAdapter(this, R.layout.list_raw)
+        val adapter  = new TumblrPostAdapter(this, R.layout.list_raw)
         listView.setAdapter(adapter)
 
         try {
