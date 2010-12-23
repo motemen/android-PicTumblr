@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.{ View, ViewGroup, Menu, MenuItem, Display, LayoutInflater }
 import android.graphics.{ Bitmap, BitmapFactory }
-import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView }
+import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView }
 import android.content.{ Intent, Context }
 import android.util.Log
 
@@ -36,6 +36,16 @@ class PicTumblrActivity extends Activity {
                 }
                 def onScrollStateChanged (view : AbsListView, scrollState : Int) {
                 }
+            }
+        )
+        listView.setOnItemClickListener(
+            new AdapterView.OnItemClickListener {
+                def onItemClick (parent : AdapterView[_], view : View, position : Int, id : Long) {
+                    val adapter = parent.getAdapter().asInstanceOf[TumblrPostAdapter]
+                    val post = adapter.getItem(position)
+                    Log.d("PicTumblrActivity", "OnItemClick: " + post)
+                }
+
             }
         )
 
