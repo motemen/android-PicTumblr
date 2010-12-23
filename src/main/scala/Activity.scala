@@ -2,13 +2,12 @@ package net.tokyoenvious.droid.pictumblr
 
 import android.app.Activity
 import android.os.Bundle
-import android.widget.Toast
-import android.widget.ImageView
 import android.content.Intent
 import android.preference.PreferenceManager
 import android.util.Log
-import android.view._
-import android.graphics._
+import android.view.{ View, ViewGroup, Menu, MenuItem }
+import android.graphics.{ Bitmap, BitmapFactory }
+import android.widget.{ Toast, ImageView, ProgressBar }
 
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
@@ -116,6 +115,7 @@ class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup, toast : String 
     // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
     override def doInBackground (page : java.lang.Integer) : Seq[Tumblr#Post] = {
         Log.d("LoadDashboardTask", "doInBackground")
+        // FIXME ここでエラーおきたときのハンドリング ふつうはどうするんだろう
         return tumblr.dashboard()
     }
 
@@ -125,23 +125,21 @@ class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup, toast : String 
         // post match { case Tumblr#PhotoPost(url) => ... } できない件は
         // post match { case tumblr.PhotoPost(url) => ... } でいける
         // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
-        posts foreach (
-            _ match {
-                case tumblr.PhotoPost(url) => {
-                    //val url = post.asInstanceOf[Tumblr#PhotoPost].photoUrl
-                    Log.d("LoadDashboardTask", "photoUrl: " + url)
+        posts foreach {
+            case tumblr.PhotoPost(url) => {
+                //val url = post.asInstanceOf[Tumblr#PhotoPost].photoUrl
+                Log.d("LoadDashboardTask", "photoUrl: " + url)
 
-                    val imageView = new ImageView(viewGroup.getContext())
-                    viewGroup.addView(imageView)
+                val imageView = new ImageView(viewGroup.getContext())
+                viewGroup.addView(imageView)
 
-                    val task = new LoadPhotoTask(imageView)
-                    task.execute(url)
-                }
-                case post => {
-                    Log.d("LoadDashboardTask", "cannot handle post: " + post.toString())
-                }
+                val task = new LoadPhotoTask(imageView)
+                task.execute(url)
             }
-        )
+            case post => {
+                Log.d("LoadDashboardTask", "cannot handle post: " + post.toString())
+            }
+        }
     }
 }
 
