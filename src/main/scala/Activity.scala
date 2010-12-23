@@ -88,19 +88,18 @@ class PicTumblrActivity extends Activity {
         val tumblr = getTumblr()
         val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
 
-        val newPage = page + 1
         try {
             // XXX クロージャなんか渡して大丈夫なんだろうか…
             dashboardLoading = true
 
             val task = new LoadDashboardTask(
-                tumblr, newPage, listView.getAdapter().asInstanceOf[TumblrPostAdapter],
+                tumblr, page + 1, listView.getAdapter().asInstanceOf[TumblrPostAdapter],
                 { Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false },
                 this.toast(_)
             )
             task.execute()
 
-            page = newPage
+            page = page + 1
         } catch {
             case e => {
                 Log.e("PicTumblrActivity.goBackDashboard", e.toString)
@@ -137,34 +136,35 @@ class TumblrPostAdapter (context : Context, textVeiwResourceId : Int, display : 
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
 // FIXME no toast here
 class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapter, callback : => Unit, toast : String => Unit)
-        extends AsyncTask0[java.lang.Void, Seq[Tumblr#Post]] {
+        extends AsyncTask0[java.lang.Void, List[Tumblr#Post]] {
 
-    val per_page = 10
-    val counter = new Counter(per_page, callback)
+    val perPage = 10
 
     override def onPreExecute () {
-        toast("Loading dashboard " + ((page - 1) * per_page + 1) + "-" + (page * per_page))
+        toast("Loading dashboard " + ((page - 1) * perPage + 1) + "-" + (page * perPage))
     }
 
     // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
-    override def doInBackground () : Seq[Tumblr#Post] = {
+    override def doInBackground () : List[Tumblr#Post] = {
         Log.d("LoadDashboardTask", "doInBackground")
         // FIXME ここでエラーおきたときのハンドリング ふつうはどうするんだろう
-        return tumblr.dashboard('start -> ((page - 1) * per_page).toString, 'num -> per_page.toString)
+        return tumblr.dashboard('start -> ((page - 1) * perPage).toString, 'num -> perPage.toString)
     }
 
-    override def onPostExecute (posts : Seq[Tumblr#Post]) {
+    override def onPostExecute (posts : List[Tumblr#Post]) {
         toast("Dashboard loaded.")
+
+        val counter = new Counter(posts.count { _.isInstanceOf[tumblr.PhotoPost] }, callback)
 
         // post match { case Tumblr#PhotoPost(url) => ... } できない件は
         // post match { case tumblr.PhotoPost(url) => ... } でいける
         // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
         posts foreach {
-            case tumblr.PhotoPost(url) => {
-                Log.d("LoadDashboardTask", "url: " + url)
+            case post : tumblr.PhotoPost => {
+                Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
 
                 val task = new LoadPhotoTask(adapter, counter.up())
-                task.execute(url)
+                task.execute(post.photoUrl)
             }
             case post => {
                 Log.d("LoadDashboardTask", "cannot handle post: " + post.toString())

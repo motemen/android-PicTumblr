@@ -23,7 +23,7 @@ class TumblrSpec extends FlatSpec with ShouldMatchers {
         val password = System.getenv("TUMBLR_PASSWORD")
         val tumblr = new Tumblr(email, password)
 
-        val res = tumblr.dashboard
+        val res = tumblr.dashboard()
         println(res)
     }
 }

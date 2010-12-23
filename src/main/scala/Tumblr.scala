@@ -18,8 +18,8 @@ class Tumblr (email : String, password : String) {
     val API_ROOT = "http://www.tumblr.com/api/"
     val maxWidth = 500
 
-    abstract class Post
-    case class PhotoPost (photoUrl : String) extends Post
+    abstract class Post(id : Long, reblogKey : String)
+    case class PhotoPost (id : Long, reblogKey : String, photoUrl : String, photoCaption : String) extends Post(id, reblogKey)
 
     // とりあえずタイトルを返す
     def authenticate () : Option[String] = {
@@ -34,24 +34,28 @@ class Tumblr (email : String, password : String) {
         }
     }
 
-    def dashboard (params : (Symbol, String)*) : Seq[Post] = {
+    def dashboard (params : (Symbol, String)*) : List[Post] = {
         ( makeApiRequest("dashboard", params ++ Seq('type -> "photo") : _*) \ "posts" \ "post" )
-            .map {
-                postElem => (postElem \ "photo-url").reduceLeftOption {
-                    (node1, node2) => {
-                        val w1 = getPhotoUrlNodeMaxWidth(node1)
-                        val w2 = getPhotoUrlNodeMaxWidth(node2)
-                        if (w1 > w2) node1 else node2
-                    }
+            .flatMap {
+                postElem => for {
+                    photoUrl <- (postElem \ "photo-url").reduceLeftOption {
+                        (node1, node2) => {
+                            val w1 = getPhotoUrlNodeMaxWidth(node1)
+                            val w2 = getPhotoUrlNodeMaxWidth(node2)
+                            if (w1 > w2) node1 else node2
+                        }
+                    } map { _.text }
+                    id <- ( postElem \ "@id" ).firstOption map { _.text.toLong }
+                    reblogKey <- ( postElem \ "@reblog-key" ).firstOption map { _.text }
+                    photoCaption <- ( postElem \ "photo-caption" ).firstOption map { _.text }
+                } yield {
+                    new PhotoPost (id, reblogKey, photoUrl, photoCaption)
                 }
             }
-            .filter { _.isDefined } .map { _.get }
-            .map {
-                photoUrlNode => PhotoPost(photoUrlNode.text)
-            }
+            .toList
     }
 
-    private def getPhotoUrlNodeMaxWidth (node : scala.xml.Node) =
+    private def getPhotoUrlNodeMaxWidth (node : scala.xml.Node) : Int =
         ( node \ "@max-width" ).firstOption map { _.text.toInt } filter { _ < maxWidth } getOrElse(0)
 
     private def makeApiRequest (function : String, params : (Symbol, String)*) : scala.xml.Elem = {
