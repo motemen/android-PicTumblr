@@ -8,9 +8,9 @@ public abstract class AsyncTask1<Params, Progress, Result> extends AsyncTask<Par
     }
     abstract protected Result doInBackground (Params p);
 
-    protected void onProgressUpdate (Progress ... values) {
-        onProgressUpdate(values[0]);
-    }
-    protected void onProgressUpdate (Progress v) {
-    }
+//  protected void onProgressUpdate (Progress ... values) {
+//      onProgressUpdate(values[0]);
+//  }
+//  protected void onProgressUpdate (Progress v) {
+//  }
 }

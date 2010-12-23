@@ -67,8 +67,8 @@ class PicTumblrActivity extends Activity {
 
         try {
             // XXX クロージャなんか渡して大丈夫なんだろうか…
-            val task = new LoadDashboardTask(tumblr, this.toast(_), adapter)
-            task.execute(1)
+            val task = new LoadDashboardTask(tumblr, 1, adapter, this.toast(_))
+            task.execute()
         } catch {
             case e => {
                 Log.e("PicTumblrActivity.updateDashboard", e.toString)
@@ -103,18 +103,20 @@ class TumblrPostAdapter (context : Context, textVeiwResourceId : Int, display : 
 }
 
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
-class LoadDashboardTask (tumblr : Tumblr, toast : String => Unit, adapter : TumblrPostAdapter)
-        extends AsyncTask1[java.lang.Integer, java.lang.Void, Seq[Tumblr#Post]] {
+class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapter, toast : String => Unit)
+        extends AsyncTask0[java.lang.Void, Seq[Tumblr#Post]] {
+
+    val per_page = 10
 
     override def onPreExecute () {
-        toast("Loading dashboard...")
+        toast("Loading dashboard " + ((page - 1) * per_page + 1) + "-" + (page * per_page))
     }
 
     // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
-    override def doInBackground (page : java.lang.Integer) : Seq[Tumblr#Post] = {
+    override def doInBackground () : Seq[Tumblr#Post] = {
         Log.d("LoadDashboardTask", "doInBackground")
         // FIXME ここでエラーおきたときのハンドリング ふつうはどうするんだろう
-        return tumblr.dashboard()
+        return tumblr.dashboard('start -> ((page - 1) * per_page).toString, 'num -> per_page.toString)
     }
 
     override def onPostExecute (posts : Seq[Tumblr#Post]) {
@@ -125,7 +127,7 @@ class LoadDashboardTask (tumblr : Tumblr, toast : String => Unit, adapter : Tumb
         // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
         posts foreach {
             case tumblr.PhotoPost(url) => {
-                Log.d("LoadDashboardTask", "photoUrl: " + url)
+                Log.d("LoadDashboardTask", "url: " + url)
 
                 val task = new LoadPhotoTask(adapter)
                 task.execute(url)
@@ -145,12 +147,15 @@ class LoadPhotoTask (adapter : TumblrPostAdapter)
         val options = new BitmapFactory.Options
         options.inPreferredConfig = Bitmap.Config.RGB_565
 
-        return BitmapFactory.decodeStream(
+        val bitmap = BitmapFactory.decodeStream(
             new java.net.URL(url).openConnection.getInputStream, null, options
         )
+        Log.d("LoadPhotoTask", "doInBackground: loaded " + url)
+        return bitmap
     }
 
     override def onPostExecute (bitmap : Bitmap) {
+        // TODO order
         adapter.add(bitmap)
     }
 }
