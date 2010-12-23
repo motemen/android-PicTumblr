@@ -3,15 +3,12 @@ package net.tokyoenvious.droid.pictumblr
 import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
-import android.view._
 import android.widget.ImageView
 import android.content.Intent
 import android.preference.PreferenceManager
 import android.util.Log
+import android.view._
 import android.graphics._
-
-// import android.os.AsyncTask
-import net.tokyoenvious.droid.pictumblr.AsyncTask
 
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
@@ -84,15 +81,13 @@ class PicTumblrActivity extends Activity {
     }
 
     def updateDashboard () {
-        toast("Updating dashboard...")
-
         val tumblr = getTumblr()
-
         val layout = findViewById(R.id.layout_main).asInstanceOf[android.view.ViewGroup]
         assert(layout != null, "layout defined")
 
         try {
-            val task = new LoadDashboardTask(tumblr, layout)
+            // XXX クロージャなんか渡して大丈夫なんだろうか…
+            val task = new LoadDashboardTask(tumblr, layout, this.toast(_))
             task.execute("1")
         } catch {
             case e => {
@@ -104,24 +99,6 @@ class PicTumblrActivity extends Activity {
         }
     }
 
-    def enqueuePostsToView(posts : Seq[Tumblr#Post]) {
-        val layout = findViewById(R.id.layout_main).asInstanceOf[android.view.ViewGroup]
-        assert(layout != null, "layout defined")
-
-        posts foreach (
-            post => {
-                val url = post.asInstanceOf[Tumblr#PhotoPost].photoUrl
-                Log.d("PicTumblrActivity.enqueuePostsToView", "photoUrl: " + url)
-
-                val imageView = new ImageView(this)
-                layout.addView(imageView)
-
-                val task = new LoadPhotoTask(imageView)
-                task.execute(url)
-            }
-        )
-    }
-
     def toast (message : String) {
         Log.i("toast", message)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show
@@ -129,8 +106,12 @@ class PicTumblrActivity extends Activity {
 }
 
 // FIXME AsyncTask[Int, ...] だと落ちる
-class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup)
-        extends AsyncTask[String, java.lang.Void, Seq[Tumblr#Post]] {
+class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup, toast : String => Unit)
+        extends AsyncTask1[String, java.lang.Void, Seq[Tumblr#Post]] {
+
+    override def onPreExecute () {
+        toast("Loading dashboard...")
+    }
 
     override def doInBackground (page : String) : Seq[Tumblr#Post] = {
         Log.d("LoadDashboardTask", "doInBackground")
@@ -138,6 +119,8 @@ class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup)
     }
 
     override def onPostExecute (posts : Seq[Tumblr#Post]) {
+        toast("Dashboard loaded.")
+
         // FIXME post match { case Tumblr#Post(url) => ... } できない
         posts foreach (
             post => {
@@ -156,7 +139,7 @@ class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup)
     }
 }
 
-class LoadPhotoTask (imageView : ImageView) extends AsyncTask[String, java.lang.Void, Bitmap] {
+class LoadPhotoTask (imageView : ImageView) extends AsyncTask1[String, java.lang.Void, Bitmap] {
     override def doInBackground (url : String) : Bitmap = {
         val options = new BitmapFactory.Options
         options.inPreferredConfig = Bitmap.Config.RGB_565
