@@ -7,7 +7,8 @@ import android.preference.PreferenceManager
 import android.util.Log
 import android.view.{ View, ViewGroup, Menu, MenuItem }
 import android.graphics.{ Bitmap, BitmapFactory }
-import android.widget.{ Toast, ImageView, ProgressBar }
+import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView }
+import android.content.Context
 
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
@@ -81,12 +82,13 @@ class PicTumblrActivity extends Activity {
 
     def updateDashboard () {
         val tumblr = getTumblr()
-        val layout = findViewById(R.id.layout_main).asInstanceOf[android.view.ViewGroup]
-        assert(layout != null, "layout defined")
+        val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
+        val adapter = new TumblrPostAdapter(this, R.layout.list_raw)
+        listView.setAdapter(adapter)
 
         try {
             // XXX クロージャなんか渡して大丈夫なんだろうか…
-            val task = new LoadDashboardTask(tumblr, layout, this.toast(_))
+            val task = new LoadDashboardTask(tumblr, this.toast(_), adapter)
             task.execute(1)
         } catch {
             case e => {
@@ -104,8 +106,25 @@ class PicTumblrActivity extends Activity {
     }
 }
 
+class TumblrPostAdapter (context : Context, textVeiwResourceId : Int)
+        extends ArrayAdapter[Bitmap](context, textVeiwResourceId) {
+
+    // contentView は他のアイテムの場合もあるらしい
+    override def getView (position : Int, contentView: View, parent : ViewGroup) : View = {
+        val bitmap = getItem(position)
+        if (bitmap == null) {
+            return new ProgressBar(parent.getContext())
+        } else {
+            // TODO reuse
+            val imageView = new ImageView(parent.getContext())
+            imageView.setImageBitmap(bitmap)
+            return imageView
+        }
+    }
+}
+
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
-class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup, toast : String => Unit)
+class LoadDashboardTask (tumblr : Tumblr, toast : String => Unit, adapter : TumblrPostAdapter)
         extends AsyncTask1[java.lang.Integer, java.lang.Void, Seq[Tumblr#Post]] {
 
     override def onPreExecute () {
@@ -127,13 +146,9 @@ class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup, toast : String 
         // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
         posts foreach {
             case tumblr.PhotoPost(url) => {
-                //val url = post.asInstanceOf[Tumblr#PhotoPost].photoUrl
                 Log.d("LoadDashboardTask", "photoUrl: " + url)
 
-                val imageView = new ImageView(viewGroup.getContext())
-                viewGroup.addView(imageView)
-
-                val task = new LoadPhotoTask(imageView)
+                val task = new LoadPhotoTask(adapter)
                 task.execute(url)
             }
             case post => {
@@ -143,17 +158,20 @@ class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup, toast : String 
     }
 }
 
-class LoadPhotoTask (imageView : ImageView) extends AsyncTask1[String, java.lang.Void, Bitmap] {
+class LoadPhotoTask (adapter : TumblrPostAdapter)
+        extends AsyncTask1[String, java.lang.Void, Bitmap] {
+
     // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
     override def doInBackground (url : String) : Bitmap = {
         val options = new BitmapFactory.Options
         options.inPreferredConfig = Bitmap.Config.RGB_565
+
         return BitmapFactory.decodeStream(
             new java.net.URL(url).openConnection.getInputStream, null, options
         )
     }
 
     override def onPostExecute (bitmap : Bitmap) {
-        imageView.setImageBitmap(bitmap)
+        adapter.add(bitmap)
     }
 }
