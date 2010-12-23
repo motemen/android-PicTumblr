@@ -3,8 +3,7 @@ package net.tokyoenvious.droid.pictumblr
 import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
-import android.view.Menu
-import android.view.MenuItem
+import android.view._
 import android.widget.ImageView
 import android.content.Intent
 import android.preference.PreferenceManager
@@ -89,10 +88,12 @@ class PicTumblrActivity extends Activity {
 
         val tumblr = getTumblr()
 
+        val layout = findViewById(R.id.layout_main).asInstanceOf[android.view.ViewGroup]
+        assert(layout != null, "layout defined")
+
         try {
-            val posts = tumblr.dashboard()
-            enqueuePostsToView(posts)
-            toast("Updated.")
+            val task = new LoadDashboardTask(tumblr, layout)
+            task.execute("1")
         } catch {
             case e => {
                 Log.e("PicTumblrActivity.updateDashboard", e.toString)
@@ -124,6 +125,34 @@ class PicTumblrActivity extends Activity {
     def toast (message : String) {
         Log.i("toast", message)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show
+    }
+}
+
+// FIXME AsyncTask[Int, ...] だと落ちる
+class LoadDashboardTask (tumblr : Tumblr, viewGroup : ViewGroup)
+        extends AsyncTask[String, java.lang.Void, Seq[Tumblr#Post]] {
+
+    override def doInBackground (page : String) : Seq[Tumblr#Post] = {
+        Log.d("LoadDashboardTask", "doInBackground")
+        return tumblr.dashboard()
+    }
+
+    override def onPostExecute (posts : Seq[Tumblr#Post]) {
+        // FIXME post match { case Tumblr#Post(url) => ... } できない
+        posts foreach (
+            post => {
+                Log.d("LoadDashboardTask", "post: " + post.toString())
+
+                val url = post.asInstanceOf[Tumblr#PhotoPost].photoUrl
+                Log.d("LoadDashboardTask", "photoUrl: " + url)
+
+                val imageView = new ImageView(viewGroup.getContext())
+                viewGroup.addView(imageView)
+
+                val task = new LoadPhotoTask(imageView)
+                task.execute(url)
+            }
+        )
     }
 }
 
