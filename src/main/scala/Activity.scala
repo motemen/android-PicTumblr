@@ -3,7 +3,7 @@ package net.tokyoenvious.droid.pictumblr
 import android.app.Activity
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.view.{ View, ViewGroup, Menu, MenuItem }
+import android.view.{ View, ViewGroup, Menu, MenuItem, Display, LayoutInflater }
 import android.graphics.{ Bitmap, BitmapFactory }
 import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView }
 import android.content.{ Intent, Context }
@@ -61,7 +61,8 @@ class PicTumblrActivity extends Activity {
         val tumblr = getTumblr()
 
         val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
-        val adapter  = new TumblrPostAdapter(this, R.layout.list_raw)
+        val display  = getWindowManager().getDefaultDisplay()
+        val adapter  = new TumblrPostAdapter(this, R.layout.list_row, display)
         listView.setAdapter(adapter)
 
         try {
@@ -84,7 +85,7 @@ class PicTumblrActivity extends Activity {
     }
 }
 
-class TumblrPostAdapter (context : Context, textVeiwResourceId : Int)
+class TumblrPostAdapter (context : Context, textVeiwResourceId : Int, display : Display)
         extends ArrayAdapter[Bitmap](context, textVeiwResourceId) {
 
     // convertView は他のアイテムの場合もあるらしい
@@ -94,7 +95,7 @@ class TumblrPostAdapter (context : Context, textVeiwResourceId : Int)
             return new ProgressBar(parent.getContext())
         } else {
             // TODO reuse
-            val imageView = new ImageView(parent.getContext())
+            val imageView = LayoutInflater.from(context).inflate(R.layout.list_row_image, null).asInstanceOf[ImageView]
             imageView.setImageBitmap(bitmap)
             return imageView
         }
