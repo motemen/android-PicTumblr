@@ -87,8 +87,8 @@ class PicTumblrActivity extends Activity {
 class TumblrPostAdapter (context : Context, textVeiwResourceId : Int)
         extends ArrayAdapter[Bitmap](context, textVeiwResourceId) {
 
-    // contentView は他のアイテムの場合もあるらしい
-    override def getView (position : Int, contentView: View, parent : ViewGroup) : View = {
+    // convertView は他のアイテムの場合もあるらしい
+    override def getView (position : Int, convertView: View, parent : ViewGroup) : View = {
         val bitmap = getItem(position)
         if (bitmap == null) {
             return new ProgressBar(parent.getContext())
