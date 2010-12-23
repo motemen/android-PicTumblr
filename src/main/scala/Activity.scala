@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.{ View, ViewGroup, Menu, MenuItem, Display, LayoutInflater }
 import android.graphics.{ Bitmap, BitmapFactory }
-import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView }
+import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView }
 import android.content.{ Intent, Context }
 import android.util.Log
 
@@ -13,11 +13,33 @@ class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
 
+    var page : Int = 0
+    var dashboardLoading = false
+
     override def onCreate (savedInstanceState : Bundle) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main)
 
-        updateDashboard()
+        val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
+        val display  = getWindowManager().getDefaultDisplay()
+        val adapter  = new TumblrPostAdapter(this, R.layout.list_row, display)
+
+        listView.setAdapter(adapter)
+        listView.setOnScrollListener(
+            new AbsListView.OnScrollListener {
+                def onScroll (view : AbsListView, firstVisibleItem : Int, visibleItemCount : Int, totalItemCount : Int) {
+                    // Log.d("PicTumblrActivity.listView", "onScroll " + (firstVisibleItem, visibleItemCount, totalItemCount))
+                    if (!PicTumblrActivity.this.dashboardLoading && firstVisibleItem + visibleItemCount >= totalItemCount - 1) {
+                        Log.d("PicTumblrActivity.listView", "goBackDashboard start: " + (firstVisibleItem, visibleItemCount, totalItemCount))
+                        PicTumblrActivity.this.goBackDashboard()
+                    }
+                }
+                def onScrollStateChanged (view : AbsListView, scrollState : Int) {
+                }
+            }
+        )
+
+        // goBackDashboard()
     }
 
     override def onCreateOptionsMenu (menu : Menu) : Boolean = {
@@ -32,7 +54,7 @@ class PicTumblrActivity extends Activity {
 
     override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
-            case MENU_ITEM_ID_REFRESH => updateDashboard
+            case MENU_ITEM_ID_REFRESH => goBackDashboard
             case MENU_ITEM_ID_SETTING => startSettingActivity
         }
 
@@ -57,30 +79,40 @@ class PicTumblrActivity extends Activity {
         return new Tumblr(email, password)
     }
 
-    def updateDashboard () {
+    def goBackDashboard () {
+        if (dashboardLoading) {
+            Log.d("PicTumblrActivity", "goBackDashboard: Already loading")
+            return
+        }
+
         val tumblr = getTumblr()
-
         val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
-        val display  = getWindowManager().getDefaultDisplay()
-        val adapter  = new TumblrPostAdapter(this, R.layout.list_row, display)
-        listView.setAdapter(adapter)
 
+        val newPage = page + 1
         try {
             // XXX クロージャなんか渡して大丈夫なんだろうか…
-            val task = new LoadDashboardTask(tumblr, 1, adapter, this.toast(_))
+            dashboardLoading = true
+
+            val task = new LoadDashboardTask(
+                tumblr, newPage, listView.getAdapter().asInstanceOf[TumblrPostAdapter],
+                { Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false },
+                this.toast(_)
+            )
             task.execute()
+
+            page = newPage
         } catch {
             case e => {
-                Log.e("PicTumblrActivity.updateDashboard", e.toString)
+                Log.e("PicTumblrActivity.goBackDashboard", e.toString)
                 val stackTrace = e.getStackTrace
-                stackTrace foreach { s => Log.d("PicTumblrActivity.updateDashboard", s.toString()) }
+                stackTrace foreach { s => Log.d("PicTumblrActivity.goBackDashboard", s.toString()) }
                 toast("Something went wrong: " + e.getMessage)
             }
         }
     }
 
     def toast (message : String) {
-        Log.i("toast", message)
+        Log.i("PicTumblrActivity", "toast: " + message)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show
     }
 }
@@ -94,7 +126,7 @@ class TumblrPostAdapter (context : Context, textVeiwResourceId : Int, display : 
         if (bitmap == null) {
             return new ProgressBar(parent.getContext())
         } else {
-            // TODO reuse
+            // TODO reuse view
             val imageView = LayoutInflater.from(context).inflate(R.layout.list_row_image, null).asInstanceOf[ImageView]
             imageView.setImageBitmap(bitmap)
             return imageView
@@ -103,10 +135,12 @@ class TumblrPostAdapter (context : Context, textVeiwResourceId : Int, display : 
 }
 
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
-class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapter, toast : String => Unit)
+// FIXME no toast here
+class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapter, callback : => Unit, toast : String => Unit)
         extends AsyncTask0[java.lang.Void, Seq[Tumblr#Post]] {
 
     val per_page = 10
+    val counter = new Counter(per_page, callback)
 
     override def onPreExecute () {
         toast("Loading dashboard " + ((page - 1) * per_page + 1) + "-" + (page * per_page))
@@ -129,7 +163,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapte
             case tumblr.PhotoPost(url) => {
                 Log.d("LoadDashboardTask", "url: " + url)
 
-                val task = new LoadPhotoTask(adapter)
+                val task = new LoadPhotoTask(adapter, counter.up())
                 task.execute(url)
             }
             case post => {
@@ -139,7 +173,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapte
     }
 }
 
-class LoadPhotoTask (adapter : TumblrPostAdapter)
+class LoadPhotoTask (adapter : TumblrPostAdapter, callback : => Unit)
         extends AsyncTask1[String, java.lang.Void, Bitmap] {
 
     // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
@@ -157,5 +191,19 @@ class LoadPhotoTask (adapter : TumblrPostAdapter)
     override def onPostExecute (bitmap : Bitmap) {
         // TODO order
         adapter.add(bitmap)
+        callback
+    }
+}
+
+// FIXME naming
+class Counter (bound: Int, callback: => Unit) {
+    var count : Int = 0;
+
+    def up () {
+        count = count + 1
+        Log.d("PicTumblrActivity", "Counter: " + count + "/" + bound)
+        if (count == bound) {
+            callback
+        }
     }
 }
