@@ -3,7 +3,7 @@ package net.tokyoenvious.droid.pictumblr
 import android.app.Activity
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.view.{ View, ViewGroup, Menu, MenuItem, Display, LayoutInflater }
+import android.view.{ View, ViewGroup, Menu, MenuItem, LayoutInflater }
 import android.graphics.{ Bitmap, BitmapFactory }
 import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView }
 import android.content.{ Intent, Context }
@@ -13,6 +13,8 @@ class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
 
+    lazy val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
+
     var page : Int = 0
     var dashboardLoading = false
 
@@ -20,9 +22,7 @@ class PicTumblrActivity extends Activity {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main)
 
-        val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
-        val display  = getWindowManager().getDefaultDisplay()
-        val adapter  = new TumblrPostAdapter(this, R.layout.list_row, display)
+        val adapter = new TumblrPostAdapter(this, R.layout.list_row)
 
         listView.setAdapter(adapter)
         listView.setOnScrollListener(
@@ -96,7 +96,6 @@ class PicTumblrActivity extends Activity {
         }
 
         val tumblr = getTumblr()
-        val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
 
         try {
             // XXX クロージャなんか渡して大丈夫なんだろうか…
@@ -126,7 +125,7 @@ class PicTumblrActivity extends Activity {
     }
 }
 
-class TumblrPostAdapter (context : Context, textVeiwResourceId : Int, display : Display)
+class TumblrPostAdapter (context : Context, textVeiwResourceId : Int)
         extends ArrayAdapter[Bitmap](context, textVeiwResourceId) {
 
     // convertView は他のアイテムの場合もあるらしい
