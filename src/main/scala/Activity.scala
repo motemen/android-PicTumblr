@@ -13,6 +13,8 @@ class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
 
+    val OLD_POST_OFFSET = 5
+
     lazy val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
 
     var page : Int = 0
@@ -29,6 +31,14 @@ class PicTumblrActivity extends Activity {
             new AbsListView.OnScrollListener {
                 def onScroll (view : AbsListView, firstVisibleItem : Int, visibleItemCount : Int, totalItemCount : Int) {
                     // Log.d("PicTumblrActivity.listView", "onScroll " + (firstVisibleItem, visibleItemCount, totalItemCount))
+                    // 古いやつは消していく
+                    if (firstVisibleItem > OLD_POST_OFFSET) {
+                        for (i <- 0 to firstVisibleItem - OLD_POST_OFFSET) {
+                            val item = adapter.getItem(0)
+                            adapter.remove(item)
+                        }
+                    }
+
                     if (!PicTumblrActivity.this.dashboardLoading && firstVisibleItem + visibleItemCount >= totalItemCount - 1) {
                         Log.d("PicTumblrActivity.listView", "goBackDashboard start: " + (firstVisibleItem, visibleItemCount, totalItemCount))
                         PicTumblrActivity.this.goBackDashboard()
