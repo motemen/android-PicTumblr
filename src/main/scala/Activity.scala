@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.{ View, ViewGroup, Menu, MenuItem, LayoutInflater }
 import android.graphics.{ Bitmap, BitmapFactory }
-import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView }
+import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView, LinearLayout }
 import android.content.{ Intent, Context }
 import android.util.Log
 
@@ -15,7 +15,8 @@ class PicTumblrActivity extends Activity {
 
     val OLD_POST_OFFSET = 5
 
-    lazy val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
+    // lazy val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
+    lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[android.widget.LinearLayout]
 
     var page : Int = 0
     var dashboardLoading = false
@@ -24,8 +25,9 @@ class PicTumblrActivity extends Activity {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main)
 
-        val adapter = new TumblrPostAdapter(this, R.layout.list_row)
+        // val adapter = new TumblrPostAdapter(this, R.layout.list_row)
 
+        /*
         listView.setAdapter(adapter)
         listView.setOnScrollListener(
             new AbsListView.OnScrollListener {
@@ -58,6 +60,7 @@ class PicTumblrActivity extends Activity {
 
             }
         )
+        */
 
         // goBackDashboard()
     }
@@ -112,7 +115,7 @@ class PicTumblrActivity extends Activity {
             dashboardLoading = true
 
             val task = new LoadDashboardTask(
-                tumblr, page + 1, listView.getAdapter().asInstanceOf[TumblrPostAdapter],
+                tumblr, page + 1, imagesContainer,
                 { Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false },
                 this.toast(_)
             )
@@ -154,7 +157,7 @@ class TumblrPostAdapter (context : Context, textVeiwResourceId : Int)
 
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
 // FIXME no toast here
-class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapter, callback : => Unit, toast : String => Unit)
+class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, callback : => Unit, toast : String => Unit)
         extends AsyncTask0[java.lang.Void, Seq[Tumblr#Post]] {
 
     val perPage = 10
@@ -183,7 +186,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapte
             case post : tumblr.PhotoPost => {
                 Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
 
-                val task = new LoadPhotoTask(adapter, counter.up())
+                val task = new LoadPhotoTask(imagesContainer, counter.up())
                 task.execute(post.photoUrl)
             }
             case post => {
@@ -193,7 +196,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, adapter : TumblrPostAdapte
     }
 }
 
-class LoadPhotoTask (adapter : TumblrPostAdapter, callback : => Unit)
+class LoadPhotoTask (imagesContainer : LinearLayout, callback : => Unit)
         extends AsyncTask1[String, java.lang.Void, Bitmap] {
 
     // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
@@ -210,7 +213,11 @@ class LoadPhotoTask (adapter : TumblrPostAdapter, callback : => Unit)
 
     override def onPostExecute (bitmap : Bitmap) {
         // TODO order
-        adapter.add(bitmap)
+        // adapter.add(bitmap)
+        val imageView = new ImageView(imagesContainer.getContext())
+        imageView.setImageBitmap(bitmap)
+        imagesContainer.addView(imageView)
+
         callback
     }
 }
