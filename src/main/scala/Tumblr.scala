@@ -34,25 +34,22 @@ class Tumblr (email : String, password : String) {
         }
     }
 
-    def dashboard (params : (Symbol, String)*) : List[Post] = {
-        ( makeApiRequest("dashboard", params ++ Seq('type -> "photo") : _*) \ "posts" \ "post" )
-            .flatMap {
-                postElem => for {
-                    photoUrl <- (postElem \ "photo-url").reduceLeftOption {
-                        (node1, node2) => {
-                            val w1 = getPhotoUrlNodeMaxWidth(node1)
-                            val w2 = getPhotoUrlNodeMaxWidth(node2)
-                            if (w1 > w2) node1 else node2
-                        }
-                    } map { _.text }
-                    id <- ( postElem \ "@id" ).firstOption map { _.text.toLong }
-                    reblogKey <- ( postElem \ "@reblog-key" ).firstOption map { _.text }
-                    photoCaption <- ( postElem \ "photo-caption" ).firstOption map { _.text }
-                } yield {
-                    new PhotoPost (id, reblogKey, photoUrl, photoCaption)
+    def dashboard (params : (Symbol, String)*) : Seq[Post] = {
+        for {
+            postElem <- ( makeApiRequest("dashboard", params ++ Seq('type -> "photo") : _*) \ "posts" \ "post" )
+            photoUrl <- (postElem \ "photo-url").reduceLeftOption {
+                (node1, node2) => {
+                    val w1 = getPhotoUrlNodeMaxWidth(node1)
+                    val w2 = getPhotoUrlNodeMaxWidth(node2)
+                    if (w1 > w2) node1 else node2
                 }
-            }
-            .toList
+            } map { _.text }
+            id <- ( postElem \ "@id" ).firstOption map { _.text.toLong }
+            reblogKey <- ( postElem \ "@reblog-key" ).firstOption map { _.text }
+            photoCaption <- ( postElem \ "photo-caption" ).firstOption map { _.text }
+        } yield {
+            new PhotoPost (id, reblogKey, photoUrl, photoCaption)
+        }
     }
 
     private def getPhotoUrlNodeMaxWidth (node : scala.xml.Node) : Int =
