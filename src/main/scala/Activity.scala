@@ -8,6 +8,8 @@ import android.graphics.{ Bitmap, BitmapFactory }
 import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView, LinearLayout }
 import android.content.{ Intent, Context }
 import android.util.Log
+import android.view.GestureDetector
+import android.view.MotionEvent
 
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
@@ -15,8 +17,30 @@ class PicTumblrActivity extends Activity {
 
     val OLD_POST_OFFSET = 5
 
-    // lazy val listView = findViewById(R.id.layout_list).asInstanceOf[ListView]
-    lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[android.widget.LinearLayout]
+    // display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+    lazy val displayWidth = getWindowManager().getDefaultDisplay().getWidth()
+    lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
+    lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
+    lazy val gestureDetector = new GestureDetector(
+        new GestureDetector.SimpleOnGestureListener() {
+            override def onFling (e1 : MotionEvent, e2 : MotionEvent, vx : Float, vy : Float) : Boolean = {
+                if (e1.getX() - e2.getX() < 0) {
+                    horizontalScrollView.smoothScrollBy(-horizontalScrollView.getWidth(), 0)
+                } else {
+                    horizontalScrollView.smoothScrollBy(+horizontalScrollView.getWidth(), 0)
+                }
+
+                return true
+            }
+
+            /*
+            override def onScroll (e1 : MotionEvent, e2 : MotionEvent, dx : Float, dy : Float) : Boolean = {
+                // discard all scroll
+                return true
+            }
+            */
+        }
+    )
 
     var page : Int = 0
     var dashboardLoading = false
@@ -25,44 +49,19 @@ class PicTumblrActivity extends Activity {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main)
 
-        // val adapter = new TumblrPostAdapter(this, R.layout.list_row)
-
-        /*
-        listView.setAdapter(adapter)
-        listView.setOnScrollListener(
-            new AbsListView.OnScrollListener {
-                def onScroll (view : AbsListView, firstVisibleItem : Int, visibleItemCount : Int, totalItemCount : Int) {
-                    // Log.d("PicTumblrActivity.listView", "onScroll " + (firstVisibleItem, visibleItemCount, totalItemCount))
-                    // 古いやつは消していく
-                    if (firstVisibleItem > OLD_POST_OFFSET) {
-                        for (i <- 0 to firstVisibleItem - OLD_POST_OFFSET) {
-                            val item = adapter.getItem(0)
-                            adapter.remove(item)
-                        }
+        horizontalScrollView.setOnTouchListener(
+            new View.OnTouchListener() {
+                override def onTouch (v : View, event : MotionEvent) : Boolean = {
+                    if (gestureDetector.onTouchEvent(event)) {
+                        return true
+                    } else {
+                        return false
                     }
-
-                    if (!PicTumblrActivity.this.dashboardLoading && firstVisibleItem + visibleItemCount >= totalItemCount - 1) {
-                        Log.d("PicTumblrActivity.listView", "goBackDashboard start: " + (firstVisibleItem, visibleItemCount, totalItemCount))
-                        PicTumblrActivity.this.goBackDashboard()
-                    }
-                }
-                def onScrollStateChanged (view : AbsListView, scrollState : Int) {
                 }
             }
         )
-        listView.setOnItemClickListener(
-            new AdapterView.OnItemClickListener {
-                def onItemClick (parent : AdapterView[_], view : View, position : Int, id : Long) {
-                    val adapter = parent.getAdapter().asInstanceOf[TumblrPostAdapter]
-                    val post = adapter.getItem(position)
-                    Log.d("PicTumblrActivity", "OnItemClick: " + post)
-                }
 
-            }
-        )
-        */
-
-        // goBackDashboard()
+        goBackDashboard()
     }
 
     override def onCreateOptionsMenu (menu : Menu) : Boolean = {
@@ -138,23 +137,6 @@ class PicTumblrActivity extends Activity {
     }
 }
 
-class TumblrPostAdapter (context : Context, textVeiwResourceId : Int)
-        extends ArrayAdapter[Bitmap](context, textVeiwResourceId) {
-
-    // convertView は他のアイテムの場合もあるらしい
-    override def getView (position : Int, convertView: View, parent : ViewGroup) : View = {
-        val bitmap = getItem(position)
-        if (bitmap == null) {
-            return new ProgressBar(parent.getContext())
-        } else {
-            // TODO reuse view
-            val imageView = LayoutInflater.from(context).inflate(R.layout.list_row_image, null).asInstanceOf[ImageView]
-            imageView.setImageBitmap(bitmap)
-            return imageView
-        }
-    }
-}
-
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
 // FIXME no toast here
 class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, callback : => Unit, toast : String => Unit)
@@ -213,10 +195,25 @@ class LoadPhotoTask (imagesContainer : LinearLayout, callback : => Unit)
 
     override def onPostExecute (bitmap : Bitmap) {
         // TODO order
-        // adapter.add(bitmap)
-        val imageView = new ImageView(imagesContainer.getContext())
+        val context = imagesContainer.getContext()
+        val imageView = new ImageView(context)
+        // val displayWidth = imagesContainer.getParent().asInstanceOf[ViewGroup].getWidth()
+        val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
+                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
+        Log.d("LoadPhotoTask", "displayWidth=" + displayWidth)
+
+        val layout = new android.widget.RelativeLayout(context)
+        layout.setGravity(android.view.Gravity.CENTER)
+
+        imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
         imageView.setImageBitmap(bitmap)
-        imagesContainer.addView(imageView)
+        imageView.setAdjustViewBounds(true)
+        imageView.setMaxWidth(displayWidth)
+        imageView.setMinimumWidth(displayWidth)
+
+        layout.addView(imageView)
+
+        imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
 
         callback
     }
