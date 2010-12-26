@@ -17,8 +17,6 @@ class PicTumblrActivity extends Activity {
 
     val OLD_POST_OFFSET = 5
 
-    // display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-    lazy val displayWidth = getWindowManager().getDefaultDisplay().getWidth()
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
     lazy val gestureDetector = new GestureDetector(
@@ -53,6 +51,9 @@ class PicTumblrActivity extends Activity {
             new View.OnTouchListener() {
                 override def onTouch (v : View, event : MotionEvent) : Boolean = {
                     if (gestureDetector.onTouchEvent(event)) {
+                        return true
+                    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                        // do not move
                         return true
                     } else {
                         return false
