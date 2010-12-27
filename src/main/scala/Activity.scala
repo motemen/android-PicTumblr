@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.view.{ View, ViewGroup, Menu, MenuItem, LayoutInflater }
 import android.graphics.{ Bitmap, BitmapFactory }
-import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView, LinearLayout }
+import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView, LinearLayout, RelativeLayout }
 import android.content.{ Intent, Context }
 import android.util.Log
 import android.view.GestureDetector
@@ -169,8 +169,15 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
             case post : tumblr.PhotoPost => {
                 Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
 
-                val task = new LoadPhotoTask(imagesContainer, counter.up())
-                task.execute(post.photoUrl)
+                val context = imagesContainer.getContext()
+                val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
+                        .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
+                val layout = new android.widget.RelativeLayout(context)
+                layout.setGravity(android.view.Gravity.CENTER)
+                imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
+
+                val task = new LoadPhotoTask(layout, counter.up())
+                task.execute(post)
             }
             case post => {
                 Log.d("LoadDashboardTask", "cannot handle post: " + post.toString())
@@ -179,42 +186,30 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
     }
 }
 
-class LoadPhotoTask (imagesContainer : LinearLayout, callback : => Unit)
-        extends AsyncTask1[String, java.lang.Void, Bitmap] {
+class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
+        extends AsyncTask1[Tumblr#PhotoPost, java.lang.Void, Bitmap] {
 
     // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
-    override def doInBackground (url : String) : Bitmap = {
+    override def doInBackground (photoPost : Tumblr#PhotoPost) : Bitmap = {
         val options = new BitmapFactory.Options
         options.inPreferredConfig = Bitmap.Config.RGB_565
 
         val bitmap = BitmapFactory.decodeStream(
-            new java.net.URL(url).openConnection.getInputStream, null, options
+            new java.net.URL(photoPost.photoUrl).openConnection.getInputStream, null, options
         )
-        Log.d("LoadPhotoTask", "doInBackground: loaded " + url)
+        Log.d("LoadPhotoTask", "doInBackground: loaded " + photoPost.photoUrl)
         return bitmap
     }
 
     override def onPostExecute (bitmap : Bitmap) {
-        // TODO order
-        val context = imagesContainer.getContext()
-        val imageView = new ImageView(context)
-        // val displayWidth = imagesContainer.getParent().asInstanceOf[ViewGroup].getWidth()
-        val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
-                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
-        Log.d("LoadPhotoTask", "displayWidth=" + displayWidth)
-
-        val layout = new android.widget.RelativeLayout(context)
-        layout.setGravity(android.view.Gravity.CENTER)
-
+        val imageView = new ImageView(imageContainer.getContext())
         imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
         imageView.setImageBitmap(bitmap)
         imageView.setAdjustViewBounds(true)
-        imageView.setMaxWidth(displayWidth)
-        imageView.setMinimumWidth(displayWidth)
+        // imageView.setMaxWidth(displayWidth)
+        // imageView.setMinimumWidth(displayWidth)
 
-        layout.addView(imageView)
-
-        imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
+        imageContainer.addView(imageView)
 
         callback
     }

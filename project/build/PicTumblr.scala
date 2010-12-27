@@ -9,7 +9,7 @@ class PicTumblr(info: ProjectInfo) extends ParentProject(info) {
   override def updateAction = task { None }
 
   lazy val main  = project(".", "PicTumblr", new MainProject(_))
-  lazy val tests = project("tests",  "tests", new TestProject(_), main)
+  lazy val tests = project("tests", "tests", new TestProject(_), main)
 
   class MainProject(info: ProjectInfo) extends AndroidProject(info) with Defaults with MarketPublish {
     val keyalias  = "change-me"
