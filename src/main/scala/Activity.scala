@@ -201,7 +201,14 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         return bitmap
     }
 
+    override def onPreExecute () {
+        val progressBar = new ProgressBar(imageContainer.getContext())
+        imageContainer.addView(progressBar)
+    }
+
     override def onPostExecute (bitmap : Bitmap) {
+        imageContainer.removeViewAt(0)
+
         val imageView = new ImageView(imageContainer.getContext())
         imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
         imageView.setImageBitmap(bitmap)
