@@ -3,7 +3,7 @@ package net.tokyoenvious.droid.pictumblr
 import android.app.Activity
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.view.{ View, ViewGroup, Menu, MenuItem, LayoutInflater }
+import android.view.{ View, ViewGroup, Menu, MenuItem, LayoutInflater, ContextMenu }
 import android.graphics.{ Bitmap, BitmapFactory }
 import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView, LinearLayout, RelativeLayout }
 import android.content.{ Intent, Context }
@@ -18,11 +18,18 @@ class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
 
+    val CONTEXT_MENU_ID_ITEM_INFO   = Menu.FIRST + 3
+    val CONTEXT_MENU_ID_ITEM_REBLOG = Menu.FIRST + 4
+
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
     lazy val gestureDetector = new GestureDetector(
         new GestureDetector.SimpleOnGestureListener() {
             override def onFling (e1 : MotionEvent, e2 : MotionEvent, vx : Float, vy : Float) : Boolean = {
+                if (e1 == null || e2 == null) {
+                    return true
+                }
+
                 if (e1.getX() - e2.getX() < 0) {
                     horizontalScrollView.smoothScrollBy(-horizontalScrollView.getWidth(), 0)
                 } else {
@@ -41,12 +48,19 @@ class PicTumblrActivity extends Activity {
         }
     )
 
+    lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
+                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
+
     var page : Int = 0
     var dashboardLoading = false
+    var index : Int = 0
 
     override def onCreate (savedInstanceState : Bundle) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.main)
+
+        registerForContextMenu(horizontalScrollView)
 
         horizontalScrollView.setOnTouchListener(
             new View.OnTouchListener() {
@@ -76,6 +90,24 @@ class PicTumblrActivity extends Activity {
         return super.onCreateOptionsMenu(menu)
     }
 
+    override def onCreateContextMenu (menu : ContextMenu, v : View, menuInfo : ContextMenu.ContextMenuInfo) {
+        Log.d("PicTumblrActivity", "onCreateContextMenu")
+
+        updateIndex()
+
+        menu.setHeaderTitle("#" + index)
+        
+        var itemInfo   = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_INFO,   Menu.NONE, "Info")
+        var itemReblog = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG, Menu.NONE, "Reblog")
+
+        super.onCreateContextMenu(menu, v, menuInfo)
+    }
+
+    override def onContextItemSelected (item : MenuItem) : Boolean = {
+        Log.d("PicTumblrActivity", "onContextMenuItemSelected")
+        false
+    }
+
     override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
             case MENU_ITEM_ID_REFRESH => goBackDashboard
@@ -83,6 +115,12 @@ class PicTumblrActivity extends Activity {
         }
 
         return true
+    }
+
+    def updateIndex () {
+        val scrollX = horizontalScrollView.getScrollX()
+        index = scrollX / displayWidth
+        Log.d("PicTumblrActivity", "updateIndex: " + index)
     }
 
     def startSettingActivity () {
@@ -233,6 +271,7 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
         imageView.setImageBitmap(bitmap)
         imageView.setAdjustViewBounds(true)
+        imageView.setLongClickable(true) // to bubble up
         // imageView.setMaxWidth(displayWidth)
         // imageView.setMinimumWidth(displayWidth)
 
