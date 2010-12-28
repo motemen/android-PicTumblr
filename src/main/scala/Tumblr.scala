@@ -19,7 +19,8 @@ class Tumblr (email : String, password : String) {
     val maxWidth = 500
 
     abstract class Post(id : Long, reblogKey : String)
-    case class PhotoPost (id : Long, reblogKey : String, photoUrl : String, photoCaption : String) extends Post(id, reblogKey)
+    case class PhotoPost (id : Long, reblogKey : String, urlWithSlug : String, photoUrl : String, photoLinkUrl : Option[String], photoCaption : String)
+            extends Post(id, reblogKey)
 
     // とりあえずタイトルを返す
     def authenticate () : Option[String] = {
@@ -44,11 +45,13 @@ class Tumblr (email : String, password : String) {
                     if (w1 > w2) node1 else node2
                 }
             } map { _.text }
-            id <- ( postElem \ "@id" ).firstOption map { _.text.toLong }
-            reblogKey <- ( postElem \ "@reblog-key" ).firstOption map { _.text }
+            id           <- ( postElem \ "@id" ).firstOption map { _.text.toLong }
+            reblogKey    <- ( postElem \ "@reblog-key" ).firstOption map { _.text }
             photoCaption <- ( postElem \ "photo-caption" ).firstOption map { _.text }
+            urlWithSlug  <- ( postElem \ "@url-with-slug" ).firstOption map { _.text }
+            photoLinkUrl  = ( postElem \ "photo-link-url" ).firstOption map { _.text }
         } yield {
-            new PhotoPost (id, reblogKey, photoUrl, photoCaption)
+            new PhotoPost (id, reblogKey, urlWithSlug, photoUrl, photoLinkUrl, photoCaption)
         }
     }
 

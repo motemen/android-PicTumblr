@@ -3,9 +3,9 @@ package net.tokyoenvious.droid.pictumblr
 import android.app.Activity
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.view.{ View, ViewGroup, Menu, MenuItem, LayoutInflater, ContextMenu }
+import android.view.{ View, ViewGroup, Menu, MenuItem, ContextMenu }
 import android.graphics.{ Bitmap, BitmapFactory }
-import android.widget.{ Toast, ImageView, ProgressBar, ArrayAdapter, ListView, AbsListView, AdapterView, LinearLayout, RelativeLayout }
+import android.widget.{ Toast, ImageView, ProgressBar, LinearLayout, RelativeLayout }
 import android.content.{ Intent, Context }
 import android.util.Log
 import android.view.GestureDetector
@@ -20,8 +20,9 @@ class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
 
-    val CONTEXT_MENU_ID_ITEM_INFO   = Menu.FIRST + 3
-    val CONTEXT_MENU_ID_ITEM_REBLOG = Menu.FIRST + 4
+    val CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR     = Menu.FIRST + 3
+    val CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK = Menu.FIRST + 4
+    val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
 
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
@@ -45,13 +46,6 @@ class PicTumblrActivity extends Activity {
                 Log.d("PicTumblrActivity", "onLongPress")
                 PicTumblrActivity.this.openContextMenu(horizontalScrollView)
             }
-
-            /*
-            override def onScroll (e1 : MotionEvent, e2 : MotionEvent, dx : Float, dy : Float) : Boolean = {
-                // discard all scroll
-                return true
-            }
-            */
         }
     )
 
@@ -69,7 +63,6 @@ class PicTumblrActivity extends Activity {
 
         setContentView(R.layout.main)
 
-        // registerForContextMenu(horizontalScrollView)
         horizontalScrollView.setOnCreateContextMenuListener(this)
 
         gestureDetector.setIsLongpressEnabled(true)
@@ -118,16 +111,18 @@ class PicTumblrActivity extends Activity {
 
         menu.setHeaderTitle("#" + index)
         
-        var itemInfo   = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_INFO,   Menu.NONE, "Info")
-        var itemReblog = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG, Menu.NONE, "Reblog")
+        var itemOpenTumblr    = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR,     Menu.NONE, "Open Tumblr Page")
+        var itemOpenPhotoLink = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK, Menu.NONE, "Open Photo Link")
+        var itemReblog        = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG,          Menu.NONE, "Reblog")
 
         super.onCreateContextMenu(menu, v, menuInfo)
     }
 
     override def onContextItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
-            case CONTEXT_MENU_ID_ITEM_INFO   => showPostInfoDialog
-            case CONTEXT_MENU_ID_ITEM_REBLOG => doReblogPost
+            case CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR     => openTumblr
+            case CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK => openPhotoLink
+            case CONTEXT_MENU_ID_ITEM_REBLOG          => doReblogPost
         }
 
         return true
@@ -139,9 +134,9 @@ class PicTumblrActivity extends Activity {
         Log.d("PicTumblrActivity", "updateIndex: " + index)
     }
 
-    def currentPost () : Tumblr#PhotoPost = {
+    def currentPost () : Option[Tumblr#PhotoPost] = {
         // updateIndex()
-        return posts(index)
+        return posts.get(index)
     }
 
     def startSettingActivity () {
@@ -154,6 +149,25 @@ class PicTumblrActivity extends Activity {
 
         val dialog = new android.app.Dialog(this)
         dialog.show()
+    }
+
+    def openTumblr () {
+        for (
+            post <- currentPost
+        ) {
+            val intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(post.urlWithSlug))
+            startActivity(intent)
+        }
+    }
+
+    def openPhotoLink () {
+        for (
+            post <- currentPost;
+            photoLinkUrl <- post.photoLinkUrl
+        ) {
+            val intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(photoLinkUrl))
+            startActivity(intent)
+        }
     }
 
     def doReblogPost () {
@@ -252,7 +266,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
                 val context = imagesContainer.getContext()
                 val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
                         .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
-                val layout = new android.widget.RelativeLayout(context)
+                val layout = new RelativeLayout(context)
                 layout.setGravity(android.view.Gravity.CENTER)
                 imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
 
@@ -307,10 +321,6 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
         imageView.setImageBitmap(bitmap)
         imageView.setAdjustViewBounds(true)
-        // imageView.setLongClickable(true) // to bubble up
-        // imageView.setClickable(true) // to bubble up
-        // imageView.setMaxWidth(displayWidth)
-        // imageView.setMinimumWidth(displayWidth)
 
         imageContainer.addView(imageView)
 
