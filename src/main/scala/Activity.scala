@@ -43,6 +43,7 @@ class PicTumblrActivity extends Activity {
 
             override def onLongPress (e : MotionEvent) {
                 Log.d("PicTumblrActivity", "onLongPress")
+                PicTumblrActivity.this.openContextMenu(horizontalScrollView)
             }
 
             /*
@@ -69,24 +70,18 @@ class PicTumblrActivity extends Activity {
         setContentView(R.layout.main)
 
         // registerForContextMenu(horizontalScrollView)
+        horizontalScrollView.setOnCreateContextMenuListener(this)
 
         gestureDetector.setIsLongpressEnabled(true)
 
         horizontalScrollView.setOnTouchListener(
             new View.OnTouchListener() {
                 override def onTouch (v : View, event : MotionEvent) : Boolean = {
-                    Log.d("PicTumblrActivity", "OnTouchListener: " + event.getAction())
-
                     if (gestureDetector.onTouchEvent(event)) {
                         return true
                     } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
                         // do not move
                         return true
-                    /*
-                    } else if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                        // hmm http://groups.google.com/group/android-developers/browse_thread/thread/dd099237c037b798
-                        return true
-                    */
                     } else {
                         return false
                     }
