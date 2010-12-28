@@ -13,7 +13,7 @@ class PicTumblr(info: ProjectInfo) extends ParentProject(info) {
 
   class MainProject(info: ProjectInfo) extends AndroidProject(info) with Defaults with MarketPublish {
     val keyalias  = "change-me"
-    val scalatest = "org.scalatest" % "scalatest" % "1.0" % "test"
+    // val scalatest = "org.scalatest" % "scalatest" % "1.0" % "test"
   }
 
   class TestProject(info: ProjectInfo) extends AndroidTestProject(info) with Defaults

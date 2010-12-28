@@ -10,12 +10,13 @@ import android.content.{ Intent, Context }
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
+import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.entity.BufferedHttpEntity
 
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
-
-    val OLD_POST_OFFSET = 5
 
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
@@ -194,10 +195,22 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         val options = new BitmapFactory.Options
         options.inPreferredConfig = Bitmap.Config.RGB_565
 
+        /*
         val bitmap = BitmapFactory.decodeStream(
             new java.net.URL(photoPost.photoUrl).openConnection.getInputStream, null, options
         )
+        */
+
+        var httpClient = new DefaultHttpClient
+        val httpGet = new HttpGet(photoPost.photoUrl)
+        val httpResponse = httpClient.execute(httpGet)
+
+        val bitmap  = BitmapFactory.decodeStream(
+            new BufferedHttpEntity(httpResponse.getEntity).getContent()
+        )
+
         Log.d("LoadPhotoTask", "doInBackground: loaded " + photoPost.photoUrl)
+
         return bitmap
     }
 
