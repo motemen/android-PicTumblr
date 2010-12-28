@@ -171,7 +171,16 @@ class PicTumblrActivity extends Activity {
     }
 
     def doReblogPost () {
-        // TODO
+        for (
+            post <- currentPost;
+            tumblr <- getTumblr
+        ) {
+            // TODO AsyncTask
+            Log.d("PicTumblrActivity", "doReblogPost: " + post)
+            toast("Reblogging...")
+            tumblr.reblog(post.asInstanceOf[tumblr.PhotoPost])
+            toast("Reblogged.")
+        }
     }
 
     def getTumblr () : Option[Tumblr] = {
@@ -329,6 +338,7 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
 }
 
 // FIXME naming
+// TaskGroup begin->end?
 class Counter (bound: Int, callback: => Unit) {
     var count : Int = 0;
 

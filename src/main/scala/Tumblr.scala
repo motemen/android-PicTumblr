@@ -21,6 +21,7 @@ class Tumblr (email : String, password : String) {
     abstract class Post(id : Long, reblogKey : String)
     case class PhotoPost (id : Long, reblogKey : String, urlWithSlug : String, photoUrl : String, photoLinkUrl : Option[String], photoCaption : String)
             extends Post(id, reblogKey)
+        // TODO plainCaption
 
     // とりあえずタイトルを返す
     def authenticate () : Option[String] = {
@@ -55,11 +56,21 @@ class Tumblr (email : String, password : String) {
         }
     }
 
+    // XXX no comment, neither as
+    def reblog (post : PhotoPost) { // FIXME Post だとダメ (value id is not a member of Tumblr.this.Post)
+        makeRawApiRequest("reblog", Symbol("post-id") -> post.id.toString(), Symbol("reblog-key") -> post.reblogKey) // FIXME Symbol()
+    }
+
     private def getPhotoUrlNodeMaxWidth (node : scala.xml.Node) : Int =
         ( node \ "@max-width" ).firstOption map { _.text.toInt } filter { _ < maxWidth } getOrElse(0)
 
     private def makeApiRequest (function : String, params : (Symbol, String)*) : scala.xml.Elem = {
-        Log.d("Tumblr.makeApiRequest", "Requesting " + API_ROOT + function)
+        return XML.load(makeRawApiRequest(function, params : _*))
+    }
+
+    // 200 以外だとしぬのをなんとか
+    private def makeRawApiRequest (function : String, params : (Symbol, String)*) : java.io.InputStream = {
+        Log.d("Tumblr.makeRawApiRequest", "Requesting " + API_ROOT + function)
 
         var url = new URL(API_ROOT + function)
         val http = url.openConnection.asInstanceOf[java.net.HttpURLConnection]
@@ -71,7 +82,7 @@ class Tumblr (email : String, password : String) {
         writer.write(mkPostString(params : _*))
         writer.close
 
-        return XML.load(http.getInputStream)
+        return http.getInputStream
     }
 
     private def mkPostString (params : (Symbol, String)*) : String = {
