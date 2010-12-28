@@ -14,6 +14,8 @@ import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.entity.BufferedHttpEntity
 
+import scala.collection.mutable.Queue
+
 class PicTumblrActivity extends Activity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
@@ -39,6 +41,10 @@ class PicTumblrActivity extends Activity {
                 return true
             }
 
+            override def onLongPress (e : MotionEvent) {
+                Log.d("PicTumblrActivity", "onLongPress")
+            }
+
             /*
             override def onScroll (e1 : MotionEvent, e2 : MotionEvent, dx : Float, dy : Float) : Boolean = {
                 // discard all scroll
@@ -51,6 +57,8 @@ class PicTumblrActivity extends Activity {
     lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
                 .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
 
+    val posts = new Queue[Tumblr#PhotoPost]();
+
     var page : Int = 0
     var dashboardLoading = false
     var index : Int = 0
@@ -60,16 +68,25 @@ class PicTumblrActivity extends Activity {
 
         setContentView(R.layout.main)
 
-        registerForContextMenu(horizontalScrollView)
+        // registerForContextMenu(horizontalScrollView)
+
+        gestureDetector.setIsLongpressEnabled(true)
 
         horizontalScrollView.setOnTouchListener(
             new View.OnTouchListener() {
                 override def onTouch (v : View, event : MotionEvent) : Boolean = {
+                    Log.d("PicTumblrActivity", "OnTouchListener: " + event.getAction())
+
                     if (gestureDetector.onTouchEvent(event)) {
                         return true
                     } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
                         // do not move
                         return true
+                    /*
+                    } else if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                        // hmm http://groups.google.com/group/android-developers/browse_thread/thread/dd099237c037b798
+                        return true
+                    */
                     } else {
                         return false
                     }
@@ -90,6 +107,15 @@ class PicTumblrActivity extends Activity {
         return super.onCreateOptionsMenu(menu)
     }
 
+    override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
+        menuItem.getItemId() match {
+            case MENU_ITEM_ID_REFRESH => goBackDashboard
+            case MENU_ITEM_ID_SETTING => startSettingActivity
+        }
+
+        return true
+    }
+
     override def onCreateContextMenu (menu : ContextMenu, v : View, menuInfo : ContextMenu.ContextMenuInfo) {
         Log.d("PicTumblrActivity", "onCreateContextMenu")
 
@@ -103,15 +129,10 @@ class PicTumblrActivity extends Activity {
         super.onCreateContextMenu(menu, v, menuInfo)
     }
 
-    override def onContextItemSelected (item : MenuItem) : Boolean = {
-        Log.d("PicTumblrActivity", "onContextMenuItemSelected")
-        false
-    }
-
-    override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
+    override def onContextItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
-            case MENU_ITEM_ID_REFRESH => goBackDashboard
-            case MENU_ITEM_ID_SETTING => startSettingActivity
+            case CONTEXT_MENU_ID_ITEM_INFO   => showPostInfoDialog
+            case CONTEXT_MENU_ID_ITEM_REBLOG => doReblogPost
         }
 
         return true
@@ -123,9 +144,25 @@ class PicTumblrActivity extends Activity {
         Log.d("PicTumblrActivity", "updateIndex: " + index)
     }
 
+    def currentPost () : Tumblr#PhotoPost = {
+        // updateIndex()
+        return posts(index)
+    }
+
     def startSettingActivity () {
         val intent = new Intent(this, classOf[PicTumblrPrefernceActivity])
         startActivity(intent)
+    }
+
+    def showPostInfoDialog () {
+        Log.d("PicTumblrActivity", "showPostInfoDialog: " + currentPost)
+
+        val dialog = new android.app.Dialog(this)
+        dialog.show()
+    }
+
+    def doReblogPost () {
+        // TODO
     }
 
     def getTumblr () : Option[Tumblr] = {
@@ -158,7 +195,7 @@ class PicTumblrActivity extends Activity {
 
                     // XXX クロージャなんか渡して大丈夫なんだろうか…
                     val task = new LoadDashboardTask(
-                        tumblr, page + 1, imagesContainer,
+                        tumblr, page + 1, imagesContainer, posts,
                         { Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false },
                         this.toast(_)
                     )
@@ -186,7 +223,7 @@ class PicTumblrActivity extends Activity {
 
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
 // FIXME no toast here
-class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, callback : => Unit, toast : String => Unit)
+class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], callback : => Unit, toast : String => Unit)
         extends AsyncTask0[java.lang.Void, Seq[Tumblr#Post]] {
 
     val perPage = 10
@@ -202,18 +239,20 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
         return tumblr.dashboard('start -> ((page - 1) * perPage).toString, 'num -> perPage.toString)
     }
 
-    override def onPostExecute (posts : Seq[Tumblr#Post]) {
+    override def onPostExecute (loadedPosts : Seq[Tumblr#Post]) {
         toast("Dashboard loaded.")
 
-        val postsList = posts.toList
-        val counter = new Counter(postsList.count { _.isInstanceOf[tumblr.PhotoPost] }, callback)
+        val loadedPostsList = loadedPosts.toList
+        val counter = new Counter(loadedPostsList.count { _.isInstanceOf[tumblr.PhotoPost] }, callback)
 
         // post match { case Tumblr#PhotoPost(url) => ... } できない件は
         // post match { case tumblr.PhotoPost(url) => ... } でいける
         // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
-        postsList foreach {
+        loadedPostsList foreach {
             case post : tumblr.PhotoPost => {
                 Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
+
+                posts += post
 
                 val context = imagesContainer.getContext()
                 val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
@@ -235,11 +274,13 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
 class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         extends AsyncTask1[Tumblr#PhotoPost, java.lang.Void, Bitmap] {
 
-    // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
     override def doInBackground (photoPost : Tumblr#PhotoPost) : Bitmap = {
+        // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
         val options = new BitmapFactory.Options
         options.inPreferredConfig = Bitmap.Config.RGB_565
 
+        // これだと読み込みに失敗することが多い
+        // ref. http://stackoverflow.com/questions/1630258/android-problem-bug-with-threadsafeclientconnmanager-downloading-images
         /*
         val bitmap = BitmapFactory.decodeStream(
             new java.net.URL(photoPost.photoUrl).openConnection.getInputStream, null, options
@@ -271,7 +312,8 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
         imageView.setImageBitmap(bitmap)
         imageView.setAdjustViewBounds(true)
-        imageView.setLongClickable(true) // to bubble up
+        // imageView.setLongClickable(true) // to bubble up
+        // imageView.setClickable(true) // to bubble up
         // imageView.setMaxWidth(displayWidth)
         // imageView.setMinimumWidth(displayWidth)
 
