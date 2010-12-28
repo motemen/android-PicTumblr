@@ -90,17 +90,18 @@ class PicTumblrActivity extends Activity {
         startActivity(intent)
     }
 
-    def getTumblr () : Tumblr = {
+    def getTumblr () : Option[Tumblr] = {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val email    = prefs.getString("email", "")
         val password = prefs.getString("password", "")
 
         if (email.length == 0 || password.length == 0) {
+            // TODO 戻ってきたら再アクセスとかすべきだが…
             startSettingActivity()
-            // TODO どうすべき？
+            return None
         }
 
-        return new Tumblr(email, password)
+        return Some(new Tumblr(email, password))
     }
 
     def goBackDashboard () {
@@ -109,26 +110,32 @@ class PicTumblrActivity extends Activity {
             return
         }
 
-        val tumblr = getTumblr()
+        getTumblr() match {
+            case None
+                => return
 
-        try {
-            // XXX クロージャなんか渡して大丈夫なんだろうか…
-            dashboardLoading = true
+            case Some(tumblr) => {
+                try {
+                    dashboardLoading = true
 
-            val task = new LoadDashboardTask(
-                tumblr, page + 1, imagesContainer,
-                { Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false },
-                this.toast(_)
-            )
-            task.execute()
+                    // XXX クロージャなんか渡して大丈夫なんだろうか…
+                    val task = new LoadDashboardTask(
+                        tumblr, page + 1, imagesContainer,
+                        { Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false },
+                        this.toast(_)
+                    )
+                    task.execute()
 
-            page = page + 1
-        } catch {
-            case e => {
-                Log.e("PicTumblrActivity.goBackDashboard", e.toString)
-                val stackTrace = e.getStackTrace
-                stackTrace foreach { s => Log.d("PicTumblrActivity.goBackDashboard", s.toString()) }
-                toast("Something went wrong: " + e.getMessage)
+                    page = page + 1
+
+                } catch {
+                    case e => {
+                        Log.e("PicTumblrActivity.goBackDashboard", e.toString)
+                        val stackTrace = e.getStackTrace
+                        stackTrace foreach { s => Log.d("PicTumblrActivity.goBackDashboard", s.toString()) }
+                        toast("Something went wrong: " + e.getMessage)
+                    }
+                }
             }
         }
     }
