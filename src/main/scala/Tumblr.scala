@@ -20,8 +20,12 @@ class Tumblr (email : String, password : String) {
 
     abstract class Post(id : Long, reblogKey : String)
     case class PhotoPost (id : Long, reblogKey : String, urlWithSlug : String, photoUrl : String, photoLinkUrl : Option[String], photoCaption : String)
-            extends Post(id, reblogKey)
-        // TODO plainCaption
+            extends Post(id, reblogKey) {
+
+        def plainCaption () : String = {
+            return "&lt;.*?&gt;".r.replaceAllIn(photoCaption, "")
+        }
+    }
 
     // とりあえずタイトルを返す
     def authenticate () : Option[String] = {

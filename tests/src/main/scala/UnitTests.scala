@@ -7,12 +7,4 @@ class UnitTests extends AndroidTestCase {
     def testPackageIsCorrect {
         assertEquals("net.tokyoenvious.droid.pictumblr", getContext.getPackageName)
     }
-
-    override def $tag() : Int = {
-        try {
-            return super.$tag()
-        } catch {
-            case e: Exception => throw new RuntimeException(e)
-        }
-    }
 }

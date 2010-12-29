@@ -3,13 +3,12 @@ package net.tokyoenvious.droid.pictumblr
 import android.app.Activity
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.view.{ View, ViewGroup, Menu, MenuItem, ContextMenu }
+import android.util.Log
+import android.view.{ View, ViewGroup, Menu, MenuItem, ContextMenu, GestureDetector, MotionEvent }
 import android.graphics.{ Bitmap, BitmapFactory }
 import android.widget.{ Toast, ImageView, ProgressBar, LinearLayout, RelativeLayout }
 import android.content.{ Intent, Context }
-import android.util.Log
-import android.view.GestureDetector
-import android.view.MotionEvent
+
 import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.entity.BufferedHttpEntity
@@ -23,6 +22,8 @@ class PicTumblrActivity extends Activity {
     val CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR     = Menu.FIRST + 3
     val CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK = Menu.FIRST + 4
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
+
+    val POST_OFFSET = 1
 
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
@@ -39,12 +40,19 @@ class PicTumblrActivity extends Activity {
                     horizontalScrollView.smoothScrollBy(+horizontalScrollView.getWidth(), 0)
                 }
 
+                purgeOldAndLoadNewPosts()
+
                 return true
             }
 
             override def onLongPress (e : MotionEvent) {
                 Log.d("PicTumblrActivity", "onLongPress")
                 PicTumblrActivity.this.openContextMenu(horizontalScrollView)
+            }
+
+            override def onDoubleTap (e : MotionEvent) : Boolean = {
+                Log.d("PicTumblrActivity", "onDoubleTap")
+                return false
             }
         }
     )
@@ -132,6 +140,24 @@ class PicTumblrActivity extends Activity {
         val scrollX = horizontalScrollView.getScrollX()
         index = scrollX / displayWidth
         Log.d("PicTumblrActivity", "updateIndex: " + index)
+    }
+
+    def purgeOldAndLoadNewPosts () {
+        Log.d("PicTumblrActivity", "purgeOldAndLoadNewPosts")
+
+        updateIndex()
+
+        for (i <- 1 to (posts.size min (index - POST_OFFSET))) {
+            Log.d("PicTumblrActivity", "dequeue post")
+            posts.dequeue()
+            imagesContainer.removeViewAt(0)
+            horizontalScrollView.smoothScrollBy(-horizontalScrollView.getWidth(), 0)
+            index -= 1
+        }
+
+        if (index >= posts.size - POST_OFFSET) {
+            goBackDashboard()
+        }
     }
 
     def currentPost () : Option[Tumblr#PhotoPost] = {
