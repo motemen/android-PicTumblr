@@ -23,7 +23,8 @@ class PicTumblrActivity extends Activity {
     val CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK = Menu.FIRST + 4
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
 
-    val POST_OFFSET = 1
+    val BACKWARD_OFFSET = 3
+    val FORWARD_OFFSET  = 3
 
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
@@ -34,13 +35,13 @@ class PicTumblrActivity extends Activity {
                     return true
                 }
 
+                purgeOldAndLoadNewPosts()
+
                 if (e1.getX() - e2.getX() < 0) {
                     horizontalScrollView.smoothScrollBy(-horizontalScrollView.getWidth(), 0)
                 } else {
                     horizontalScrollView.smoothScrollBy(+horizontalScrollView.getWidth(), 0)
                 }
-
-                purgeOldAndLoadNewPosts()
 
                 return true
             }
@@ -147,15 +148,15 @@ class PicTumblrActivity extends Activity {
 
         updateIndex()
 
-        for (i <- 1 to (posts.size min (index - POST_OFFSET))) {
+        for (i <- 1 to (posts.size min (index - BACKWARD_OFFSET))) {
             Log.d("PicTumblrActivity", "dequeue post")
             posts.dequeue()
             imagesContainer.removeViewAt(0)
-            horizontalScrollView.smoothScrollBy(-horizontalScrollView.getWidth(), 0)
+            horizontalScrollView.scrollBy(-horizontalScrollView.getWidth(), 0)
             index -= 1
         }
 
-        if (index >= posts.size - POST_OFFSET) {
+        if (index >= posts.size - FORWARD_OFFSET) {
             goBackDashboard()
         }
     }
