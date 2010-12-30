@@ -24,7 +24,7 @@ class PicTumblrActivity extends Activity {
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
 
     val BACKWARD_OFFSET = 3
-    val FORWARD_OFFSET  = 3
+    val FORWARD_OFFSET  = 4
 
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
@@ -116,15 +116,17 @@ class PicTumblrActivity extends Activity {
     override def onCreateContextMenu (menu : ContextMenu, v : View, menuInfo : ContextMenu.ContextMenuInfo) {
         Log.d("PicTumblrActivity", "onCreateContextMenu")
 
-        updateIndex()
+        for (
+            post <- currentPost
+        ) {
+            menu.setHeaderTitle(post.plainCaption)
+            
+            var itemOpenTumblr    = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR,     Menu.NONE, "Open Tumblr Page")
+            var itemOpenPhotoLink = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK, Menu.NONE, "Open Photo Link")
+            var itemReblog        = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG,          Menu.NONE, "Reblog")
 
-        menu.setHeaderTitle("#" + index)
-        
-        var itemOpenTumblr    = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR,     Menu.NONE, "Open Tumblr Page")
-        var itemOpenPhotoLink = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK, Menu.NONE, "Open Photo Link")
-        var itemReblog        = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG,          Menu.NONE, "Reblog")
-
-        super.onCreateContextMenu(menu, v, menuInfo)
+            super.onCreateContextMenu(menu, v, menuInfo)
+        }
     }
 
     override def onContextItemSelected (menuItem : MenuItem) : Boolean = {
@@ -137,6 +139,7 @@ class PicTumblrActivity extends Activity {
         return true
     }
 
+    // def index () がいいかも
     def updateIndex () {
         val scrollX = horizontalScrollView.getScrollX()
         index = scrollX / displayWidth
@@ -162,7 +165,7 @@ class PicTumblrActivity extends Activity {
     }
 
     def currentPost () : Option[Tumblr#PhotoPost] = {
-        // updateIndex()
+        updateIndex()
         return posts.get(index)
     }
 
@@ -360,6 +363,19 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
 
         imageContainer.addView(imageView)
 
+        callback
+    }
+}
+
+class ReblogPostTask (tumblr : Tumblr, callback : => Unit)
+        extends AsyncTask1[Tumblr#Post, java.lang.Void, Int] { // FIXME Unit は無理なのかな
+
+    override def doInBackground (post : Tumblr#Post) : Int = {
+        tumblr.reblog(post.asInstanceOf[tumblr.PhotoPost])
+        0
+    }
+
+    override def onPostExecute (dummy : Int) {
         callback
     }
 }

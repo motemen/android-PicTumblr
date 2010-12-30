@@ -5,15 +5,18 @@ import scala.xml.XML
 import java.net.URL
 import java.net.URLEncoder
 
+// TODO 
+// import org.apache.http.impl.client.DefaultHttpClient
+
 // 2.8 API
-class SeqExtra[A] (seq : Seq[A]) {
-    def reduceLeftOption[B >: A](op: (B, A) => B): Option[B] =
-        if (seq.isEmpty) None else Some(seq.reduceLeft(op))
-}
+// class SeqExtra[A] (seq : Seq[A]) {
+//     def reduceLeftOption[B >: A](op: (B, A) => B): Option[B] =
+//         if (seq.isEmpty) None else Some(seq.reduceLeft(op))
+// }
 
 class Tumblr (email : String, password : String) {
-    implicit def seq2extra[A] (seq: Seq[A]) : SeqExtra[A]
-        = new SeqExtra[A](seq)
+//  implicit def seq2extra[A] (seq: Seq[A]) : SeqExtra[A]
+//      = new SeqExtra[A](seq)
 
     val API_ROOT = "http://www.tumblr.com/api/"
     val maxWidth = 500
@@ -23,7 +26,7 @@ class Tumblr (email : String, password : String) {
             extends Post(id, reblogKey) {
 
         def plainCaption () : String = {
-            return "&lt;.*?&gt;".r.replaceAllIn(photoCaption, "")
+            return "\\s+".r.replaceAllIn("<.*?>".r.replaceAllIn(photoCaption, ""), " ")
         }
     }
 
@@ -31,7 +34,7 @@ class Tumblr (email : String, password : String) {
     def authenticate () : Option[String] = {
         try {
             // API lv7 でえらる…… (SDK のバグ？)
-            return makeApiRequest("authenticate").elements.next.attribute("title").map(_.text)
+            return makeApiRequest("authenticate").iterator.next.attribute("title").map(_.text)
         } catch {
             case e => {
                 Log.d("Tumblr.authenticate", e.toString)
@@ -50,11 +53,11 @@ class Tumblr (email : String, password : String) {
                     if (w1 > w2) node1 else node2
                 }
             } map { _.text }
-            id           <- ( postElem \ "@id" ).firstOption map { _.text.toLong }
-            reblogKey    <- ( postElem \ "@reblog-key" ).firstOption map { _.text }
-            photoCaption <- ( postElem \ "photo-caption" ).firstOption map { _.text }
-            urlWithSlug  <- ( postElem \ "@url-with-slug" ).firstOption map { _.text }
-            photoLinkUrl  = ( postElem \ "photo-link-url" ).firstOption map { _.text }
+            id           <- ( postElem \ "@id" ).headOption map { _.text.toLong }
+            reblogKey    <- ( postElem \ "@reblog-key" ).headOption map { _.text }
+            photoCaption <- ( postElem \ "photo-caption" ).headOption map { _.text }
+            urlWithSlug  <- ( postElem \ "@url-with-slug" ).headOption map { _.text }
+            photoLinkUrl  = ( postElem \ "photo-link-url" ).headOption map { _.text }
         } yield {
             new PhotoPost (id, reblogKey, urlWithSlug, photoUrl, photoLinkUrl, photoCaption)
         }
@@ -66,7 +69,7 @@ class Tumblr (email : String, password : String) {
     }
 
     private def getPhotoUrlNodeMaxWidth (node : scala.xml.Node) : Int =
-        ( node \ "@max-width" ).firstOption map { _.text.toInt } filter { _ < maxWidth } getOrElse(0)
+        ( node \ "@max-width" ).headOption map { _.text.toInt } filter { _ < maxWidth } getOrElse(0)
 
     private def makeApiRequest (function : String, params : (Symbol, String)*) : scala.xml.Elem = {
         return XML.load(makeRawApiRequest(function, params : _*))
