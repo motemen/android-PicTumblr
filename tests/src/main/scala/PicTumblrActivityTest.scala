@@ -5,7 +5,8 @@ import junit.framework.Assert._
 import net.tokyoenvious.droid.pictumblr.PicTumblrActivity
 
 class PicTumblrActivityTest
-    extends ActivityInstrumentationTestCase2[PicTumblrActivity]("net.tokyoenvious.droid.pictumblr", classOf[PicTumblrActivity]) {
+    extends ActivityInstrumentationTestCase2[PicTumblrActivity]("net.tokyoenvious.droid.pictumblr", classOf[PicTumblrActivity])
+    {
 
     lazy val activity = getActivity()
 

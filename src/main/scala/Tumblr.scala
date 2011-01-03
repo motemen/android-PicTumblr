@@ -8,16 +8,7 @@ import java.net.URLEncoder
 // TODO 
 // import org.apache.http.impl.client.DefaultHttpClient
 
-// 2.8 API
-// class SeqExtra[A] (seq : Seq[A]) {
-//     def reduceLeftOption[B >: A](op: (B, A) => B): Option[B] =
-//         if (seq.isEmpty) None else Some(seq.reduceLeft(op))
-// }
-
 class Tumblr (email : String, password : String) {
-//  implicit def seq2extra[A] (seq: Seq[A]) : SeqExtra[A]
-//      = new SeqExtra[A](seq)
-
     val API_ROOT = "http://www.tumblr.com/api/"
     val maxWidth = 500
 

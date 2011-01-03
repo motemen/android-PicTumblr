@@ -18,5 +18,6 @@ class PicTumblr(info: ProjectInfo) extends ParentProject(info) {
 
   class TestProject(info: ProjectInfo) extends AndroidTestProject(info) with Defaults {
     override def proguardInJars = runClasspath --- proguardExclude
+    val scalatest = "org.scalatest" % "scalatest" % "1.0"
   }
 }
