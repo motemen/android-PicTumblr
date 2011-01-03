@@ -26,7 +26,7 @@ class Tumblr (email : String, password : String) {
             extends Post(id, reblogKey) {
 
         def plainCaption () : String = {
-            return "\\s+".r.replaceAllIn("<.*?>".r.replaceAllIn(photoCaption, ""), " ")
+            return """\s+""".r.replaceAllIn("<.*?>".r.replaceAllIn(photoCaption, ""), " ")
         }
     }
 
@@ -53,9 +53,9 @@ class Tumblr (email : String, password : String) {
                     if (w1 > w2) node1 else node2
                 }
             } map { _.text }
-            id           <- ( postElem \ "@id" ).headOption map { _.text.toLong }
-            reblogKey    <- ( postElem \ "@reblog-key" ).headOption map { _.text }
-            photoCaption <- ( postElem \ "photo-caption" ).headOption map { _.text }
+            id           <- ( postElem \ "@id" )           .headOption map { _.text.toLong }
+            reblogKey    <- ( postElem \ "@reblog-key" )   .headOption map { _.text }
+            photoCaption <- ( postElem \ "photo-caption" ) .headOption map { _.text }
             urlWithSlug  <- ( postElem \ "@url-with-slug" ).headOption map { _.text }
             photoLinkUrl  = ( postElem \ "photo-link-url" ).headOption map { _.text }
         } yield {
