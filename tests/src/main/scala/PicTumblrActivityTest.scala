@@ -8,14 +8,15 @@ class PicTumblrActivityTest
     extends ActivityInstrumentationTestCase2[PicTumblrActivity]("net.tokyoenvious.droid.pictumblr", classOf[PicTumblrActivity])
     {
 
+    // なんか毎回 onCreate が走っている気がする……
     lazy val activity = getActivity()
 
-    def testActivity {
-        assertNotNull(activity)
-    }
-
     def testTumblr {
-        assertTrue(activity.getTumblr() isDefined)
+        val tumblrOption = activity.getTumblr()
+        assertTrue(tumblrOption isDefined)
+
+        val tumblr = tumblrOption.get
+        val posts  = tumblr.dashboard()
     }
 
     def testTaskGroupCallback {

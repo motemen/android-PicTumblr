@@ -2,11 +2,18 @@ package net.tokyoenvious.droid.pictumblr
 
 import android.util.Log
 import scala.xml.XML
+import scala.io.Source
+import scala.collection.JavaConversions._
 import java.net.URL
 import java.net.URLEncoder
 
-// TODO 
-// import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.params.BasicHttpParams
+import org.apache.http.entity.BufferedHttpEntity
+import org.apache.http.entity.StringEntity
+import org.apache.http.client.entity.UrlEncodedFormEntity
+import org.apache.http.message.BasicNameValuePair
 
 class Tumblr (email : String, password : String) {
     val API_ROOT = "http://www.tumblr.com/api/"
@@ -16,8 +23,10 @@ class Tumblr (email : String, password : String) {
     case class PhotoPost (id : Long, reblogKey : String, urlWithSlug : String, photoUrl : String, photoLinkUrl : Option[String], photoCaption : String)
             extends Post(id, reblogKey) {
 
-        def plainCaption () : String = {
-            return """\s+""".r.replaceAllIn("<.*?>".r.replaceAllIn(photoCaption, ""), " ")
+        lazy val plainCaption : String = {
+            val plainText = """\s+""".r.replaceAllIn("<.*?>".r.replaceAllIn(photoCaption, ""), " ")
+            val entity    = new StringEntity(plainText)
+            Source.fromInputStream(entity.getContent).toString()
         }
     }
 
@@ -68,24 +77,19 @@ class Tumblr (email : String, password : String) {
 
     // 200 以外だとしぬのをなんとか
     private def makeRawApiRequest (function : String, params : (Symbol, String)*) : java.io.InputStream = {
-        Log.d("Tumblr.makeRawApiRequest", "Requesting " + API_ROOT + function)
+        Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)
 
-        var url = new URL(API_ROOT + function)
-        val http = url.openConnection.asInstanceOf[java.net.HttpURLConnection]
-        http.setRequestMethod("POST")
-        http.setDoOutput(true)
-        http.connect
+        var httpClient = new DefaultHttpClient
+        val httpPost   = new HttpPost(API_ROOT + function)
+        val httpParams = for ((key, value) <- params ++ Map('email -> email, 'password -> password)) yield {
+            new BasicNameValuePair(key.name, value)
+        }
+        httpPost.setEntity(new UrlEncodedFormEntity(httpParams))
 
-        val writer = new java.io.OutputStreamWriter(http.getOutputStream)
-        writer.write(mkPostString(params : _*))
-        writer.close
+        val httpResponse = httpClient.execute(httpPost)
+        Log.d("Tumblr#makeRawApiRequest", "Status: " + httpResponse.getStatusLine)
 
-        return http.getInputStream
-    }
-
-    private def mkPostString (params : (Symbol, String)*) : String = {
-        ( Map('email -> email, 'password -> password) ++ params )
-            .map { case (key, value) => key.name + "=" + URLEncoder.encode(value) }
-                .mkString("&")
+        // TODO error on non-2xx
+        return new BufferedHttpEntity(httpResponse.getEntity).getContent()
     }
 }

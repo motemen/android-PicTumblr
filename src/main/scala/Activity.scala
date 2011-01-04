@@ -287,7 +287,7 @@ class PicTumblrActivity extends Activity {
 
         def end () {
             count = count - 1
-            Log.d("PicTumblrActivity", "TaskGroup: end: " + count)
+            Log.d("PicTumblrActivity", "TaskGroup: end:   " + count)
 
             if (count == 0) {
                 callback

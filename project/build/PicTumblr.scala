@@ -21,16 +21,17 @@ class PicTumblr(info: ProjectInfo) extends ParentProject(info) {
         super.adbTask(emulator, action)
     }
 
-    def restartAdbServer (emulator : Boolean) =
-        if (emulator) {
-            execTask {
-                (adbPath.absolutePath + " devices") #| "grep emulator" #|| {
-                    <x> {adbPath.absolutePath} kill-server </x> #&& <x> {adbPath.absolutePath} devices </x>
-                }
-            }
-        } else {
-            task { None }
+    def restartAdbServer (emulator : Boolean) = {
+      if (emulator) {
+        execTask {
+          (adbPath.absolutePath + " devices") #| "grep emulator" #|| {
+            <x> {adbPath.absolutePath} kill-server </x> #&& <x> {adbPath.absolutePath} devices </x>
+          }
         }
+      } else {
+        task { None }
+      }
+    }
   }
 
   class TestProject(info: ProjectInfo) extends AndroidTestProject(info) with Defaults {
