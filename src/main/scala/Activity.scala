@@ -290,13 +290,12 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
     override def onPostExecute (loadedPosts : Seq[Tumblr#Post]) {
         toast("Dashboard loaded.")
 
-        val loadedPostsList = loadedPosts.toList
-        val counter = new Counter(loadedPostsList.count { _.isInstanceOf[tumblr.PhotoPost] }, callback)
+        val tasks = new TaskGroup(callback)
 
         // post match { case Tumblr#PhotoPost(url) => ... } できない件は
         // post match { case tumblr.PhotoPost(url) => ... } でいける
         // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
-        loadedPostsList foreach {
+        loadedPosts.toList foreach {
             case post : tumblr.PhotoPost => {
                 Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
 
@@ -309,7 +308,8 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
                 layout.setGravity(android.view.Gravity.CENTER)
                 imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
 
-                val task = new LoadPhotoTask(layout, counter.up())
+                tasks.begin()
+                val task = new LoadPhotoTask(layout, { tasks.end() })
                 task.execute(post)
             }
             case post => {
@@ -380,15 +380,19 @@ class ReblogPostTask (tumblr : Tumblr, callback : => Unit)
     }
 }
 
-// FIXME naming
-// TaskGroup begin->end?
-class Counter (bound: Int, callback: => Unit) {
+class TaskGroup (callback: => Unit) {
     var count : Int = 0;
 
-    def up () {
+    def begin () {
         count = count + 1
-        Log.d("PicTumblrActivity", "Counter: " + count + "/" + bound)
-        if (count == bound) {
+        Log.d("PicTumblrActivity", "TaskGroup: begin: " + count)
+    }
+
+    def end () {
+        count = count - 1
+        Log.d("PicTumblrActivity", "TaskGroup: end: " + count)
+
+        if (count == 0) {
             callback
         }
     }
