@@ -7,16 +7,15 @@ trait Defaults {
 
 trait AutoRestartAdbDaemon extends AndroidProject {
 
-    override def adbTask (emulator : Boolean, action : String) = {
-        restartAdbServer(emulator)
+    override def adbTask (emulator : Boolean, action : String) = dynamic {
+        restartAdbDaemon(emulator)
         super.adbTask(emulator, action)
     }
 
-    def restartAdbServer (emulator : Boolean) {
-        if (emulator) {
-            if (! (<_> {adbPath.absolutePath} -e get-state </_>.lines_! exists { _ == "device" })) {
-                ( <_> {adbPath.absolutePath} kill-server </_> ## <_> {adbPath.absolutePath} start-server </_> ) !
-            }
+    def restartAdbDaemon (emulator : Boolean) {
+        val deviceFlag = if (emulator) "-e" else "-d"
+        if (! (<_> {adbPath.absolutePath} {deviceFlag} get-state </_>.lines_! exists { _ == "device" })) {
+            ( <_> {adbPath.absolutePath} kill-server </_> ## <_> {adbPath.absolutePath} start-server </_> ) !
         }
     }
 }
