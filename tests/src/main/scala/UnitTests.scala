@@ -3,7 +3,7 @@ package net.tokyoenvious.droid.pictumblr.tests
 import junit.framework.Assert._
 import _root_.android.test.AndroidTestCase
 
-import net.tokyoenvious.droid.pictumblr.TaskGroup
+import net.tokyoenvious.droid.pictumblr.PicTumblrActivity
 
 class UnitTests extends AndroidTestCase {
 
@@ -11,6 +11,7 @@ class UnitTests extends AndroidTestCase {
         assertEquals("net.tokyoenvious.droid.pictumblr", getContext.getPackageName)
     }
 
+    /*
     def testTaskGroupCallback {
         var called = false
         val taskGroup = new TaskGroup({ called = true })
@@ -42,4 +43,5 @@ class UnitTests extends AndroidTestCase {
         assertTrue(called)
         assertEquals(taskGroup.count, 0)
     }
+    */
 }

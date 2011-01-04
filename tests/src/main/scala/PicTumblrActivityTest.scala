@@ -17,4 +17,36 @@ class PicTumblrActivityTest
     def testTumblr {
         assertTrue(activity.getTumblr() isDefined)
     }
+
+    def testTaskGroupCallback {
+        var called = false
+        val taskGroup = new activity.TaskGroup({ called = true })
+
+        assertFalse(called)
+        assertEquals(taskGroup.count, 0)
+
+        taskGroup.begin()
+        assertFalse(called)
+        assertEquals(taskGroup.count, 1)
+
+        taskGroup.begin()
+        assertFalse(called)
+        assertEquals(taskGroup.count, 2)
+
+        taskGroup.end()
+        assertFalse(called)
+        assertEquals(taskGroup.count, 1)
+
+        taskGroup.begin()
+        assertFalse(called)
+        assertEquals(taskGroup.count, 2)
+
+        taskGroup.end()
+        assertFalse(called)
+        assertEquals(taskGroup.count, 1)
+
+        taskGroup.end()
+        assertTrue(called)
+        assertEquals(taskGroup.count, 0)
+    }
 }

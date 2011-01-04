@@ -26,6 +26,7 @@ class PicTumblrActivity extends Activity {
     val BACKWARD_OFFSET = 3
     val FORWARD_OFFSET  = 4
 
+    // TODO TypedResources
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
     lazy val gestureDetector = new GestureDetector(
@@ -70,6 +71,7 @@ class PicTumblrActivity extends Activity {
     override def onCreate (savedInstanceState : Bundle) {
         super.onCreate(savedInstanceState)
 
+        requestWindowFeature(android.view.Window.FEATURE_INDETERMINATE_PROGRESS)
         setContentView(R.layout.main)
 
         horizontalScrollView.setOnCreateContextMenuListener(this)
@@ -241,11 +243,10 @@ class PicTumblrActivity extends Activity {
                 try {
                     dashboardLoading = true
 
-                    // XXX クロージャなんか渡して大丈夫なんだろうか…
                     val task = new LoadDashboardTask(
                         tumblr, page + 1, imagesContainer, posts,
-                        { Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false },
-                        this.toast(_)
+                        new TaskGroup({ Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false }),
+                        { this.toast(_) }
                     )
                     task.execute()
 
@@ -267,11 +268,33 @@ class PicTumblrActivity extends Activity {
         Log.i("PicTumblrActivity", "toast: " + message)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show
     }
+
+    class TaskGroup (callback: => Unit) {
+        var count : Int = 0
+        var consumed : Boolean = false
+
+        def begin () {
+            count = count + 1
+            Log.d("PicTumblrActivity", "TaskGroup: begin: " + count)
+            PicTumblrActivity.this.setProgressBarIndeterminateVisibility(true)
+        }
+
+        def end () {
+            count = count - 1
+            Log.d("PicTumblrActivity", "TaskGroup: end: " + count)
+
+            if (count == 0 && !consumed) {
+                callback
+                consumed = true
+                PicTumblrActivity.this.setProgressBarIndeterminateVisibility(false)
+            }
+        }
+    }
 }
 
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
 // FIXME no toast here
-class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], callback : => Unit, toast : String => Unit)
+class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], tasks : PicTumblrActivity#TaskGroup, toast : String => Unit)
         extends AsyncTask0[java.lang.Void, Seq[Tumblr#Post]] {
 
     val perPage = 10
@@ -289,8 +312,6 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
 
     override def onPostExecute (loadedPosts : Seq[Tumblr#Post]) {
         toast("Dashboard loaded.")
-
-        val tasks = new TaskGroup(callback)
 
         // post match { case Tumblr#PhotoPost(url) => ... } できない件は
         // post match { case tumblr.PhotoPost(url) => ... } でいける
@@ -377,23 +398,5 @@ class ReblogPostTask (tumblr : Tumblr, callback : => Unit)
 
     override def onPostExecute (dummy : Int) {
         callback
-    }
-}
-
-class TaskGroup (callback: => Unit) {
-    var count : Int = 0;
-
-    def begin () {
-        count = count + 1
-        Log.d("PicTumblrActivity", "TaskGroup: begin: " + count)
-    }
-
-    def end () {
-        count = count - 1
-        Log.d("PicTumblrActivity", "TaskGroup: end: " + count)
-
-        if (count == 0) {
-            callback
-        }
     }
 }
