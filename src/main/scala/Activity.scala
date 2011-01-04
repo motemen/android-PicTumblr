@@ -62,6 +62,11 @@ class PicTumblrActivity extends Activity {
     lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
                 .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
 
+    lazy val globalTasks = new TaskGroup(
+        { setProgressBarIndeterminateVisibility(false) },
+        { setProgressBarIndeterminateVisibility(true) }
+    )
+
     val posts = new Queue[Tumblr#PhotoPost]();
 
     var page : Int = 0
@@ -141,34 +146,30 @@ class PicTumblrActivity extends Activity {
         return true
     }
 
-    // def index () がいいかも
-    def updateIndex () {
-        val scrollX = horizontalScrollView.getScrollX()
-        index = scrollX / displayWidth
-        Log.d("PicTumblrActivity", "updateIndex: " + index)
-    }
-
     def purgeOldAndLoadNewPosts () {
         Log.d("PicTumblrActivity", "purgeOldAndLoadNewPosts")
 
-        updateIndex()
-
-        for (i <- 1 to (posts.size min (index - BACKWARD_OFFSET))) {
+        for (i <- 1 to (posts.size min (currentIndex - BACKWARD_OFFSET))) {
             Log.d("PicTumblrActivity", "dequeue post")
             posts.dequeue()
             imagesContainer.removeViewAt(0)
             horizontalScrollView.scrollBy(-horizontalScrollView.getWidth(), 0)
-            index -= 1
         }
 
-        if (index >= posts.size - FORWARD_OFFSET) {
+        if (currentIndex >= posts.size - FORWARD_OFFSET) {
             goBackDashboard()
         }
     }
 
+    def currentIndex () : Int = {
+        val scrollX = horizontalScrollView.getScrollX()
+        val index = scrollX / displayWidth
+        Log.d("PicTumblrActivity", "currentIndex: " + index)
+        return index
+    }
+
     def currentPost () : Option[Tumblr#PhotoPost] = {
-        updateIndex()
-        return posts.get(index)
+        return posts.get(currentIndex)
     }
 
     def startSettingActivity () {
@@ -243,9 +244,14 @@ class PicTumblrActivity extends Activity {
                 try {
                     dashboardLoading = true
 
+                    globalTasks.begin()
                     val task = new LoadDashboardTask(
                         tumblr, page + 1, imagesContainer, posts,
-                        new TaskGroup({ Log.d("PicTumblrActivity", "LoadDashboardTask callback"); dashboardLoading = false }),
+                        new TaskGroup({
+                            Log.d("PicTumblrActivity", "LoadDashboardTask callback")
+                            dashboardLoading = false
+                            globalTasks.end()
+                        }),
                         { this.toast(_) }
                     )
                     task.execute()
@@ -269,24 +275,23 @@ class PicTumblrActivity extends Activity {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show
     }
 
-    class TaskGroup (callback: => Unit) {
+    class TaskGroup (callback: => Unit, preCallback : => Unit = {}) {
         var count : Int = 0
-        var consumed : Boolean = false
 
         def begin () {
             count = count + 1
             Log.d("PicTumblrActivity", "TaskGroup: begin: " + count)
-            PicTumblrActivity.this.setProgressBarIndeterminateVisibility(true)
+            // PicTumblrActivity.this.setProgressBarIndeterminateVisibility(true)
+            preCallback
         }
 
         def end () {
             count = count - 1
             Log.d("PicTumblrActivity", "TaskGroup: end: " + count)
 
-            if (count == 0 && !consumed) {
+            if (count == 0) {
                 callback
-                consumed = true
-                PicTumblrActivity.this.setProgressBarIndeterminateVisibility(false)
+                // PicTumblrActivity.this.setProgressBarIndeterminateVisibility(false)
             }
         }
     }
