@@ -14,6 +14,7 @@ import org.apache.http.entity.BufferedHttpEntity
 import org.apache.http.entity.StringEntity
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.message.BasicNameValuePair
+import org.apache.http.protocol.HTTP
 
 class Tumblr (email : String, password : String) {
     val API_ROOT = "http://www.tumblr.com/api/"
@@ -25,8 +26,8 @@ class Tumblr (email : String, password : String) {
 
         lazy val plainCaption : String = {
             val plainText = """\s+""".r.replaceAllIn("<.*?>".r.replaceAllIn(photoCaption, ""), " ")
-            val entity    = new StringEntity(plainText)
-            Source.fromInputStream(entity.getContent).toString()
+            val entity    = new StringEntity(plainText, HTTP.UTF_8)
+            Source.fromInputStream(entity.getContent).mkString
         }
     }
 

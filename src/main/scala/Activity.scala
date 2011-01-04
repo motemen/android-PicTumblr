@@ -208,11 +208,16 @@ class PicTumblrActivity extends Activity {
             post <- currentPost;
             tumblr <- getTumblr
         ) {
-            // TODO AsyncTask
             Log.d("PicTumblrActivity", "doReblogPost: " + post)
+
+            globalTasks.begin()
             toast("Reblogging...")
-            tumblr.reblog(post.asInstanceOf[tumblr.PhotoPost])
-            toast("Reblogged.")
+
+            val task = new ReblogPostTask(
+                tumblr,
+                { globalTasks.end(); toast("Reblogged.") }
+            )
+            task.execute()
         }
     }
 
@@ -281,7 +286,6 @@ class PicTumblrActivity extends Activity {
         def begin () {
             count = count + 1
             Log.d("PicTumblrActivity", "TaskGroup: begin: " + count)
-            // PicTumblrActivity.this.setProgressBarIndeterminateVisibility(true)
             preCallback
         }
 
@@ -291,7 +295,6 @@ class PicTumblrActivity extends Activity {
 
             if (count == 0) {
                 callback
-                // PicTumblrActivity.this.setProgressBarIndeterminateVisibility(false)
             }
         }
     }
@@ -394,14 +397,13 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
 }
 
 class ReblogPostTask (tumblr : Tumblr, callback : => Unit)
-        extends AsyncTask1[Tumblr#Post, java.lang.Void, Int] { // FIXME Unit は無理なのかな
+        extends AsyncTask1[Tumblr#Post, java.lang.Void, Unit] {
 
-    override def doInBackground (post : Tumblr#Post) : Int = {
+    override def doInBackground (post : Tumblr#Post) : Unit = {
         tumblr.reblog(post.asInstanceOf[tumblr.PhotoPost])
-        0
     }
 
-    override def onPostExecute (dummy : Int) {
+    override def onPostExecute (u : Unit) {
         callback
     }
 }
