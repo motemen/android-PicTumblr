@@ -45,8 +45,19 @@ trait SuppressAaptWarnings extends AndroidProject {
         <_>
             {aaptPath.absolutePath} package -f -M {androidManifestPath.absolutePath} -S {mainResPath.absolutePath}
             -A {mainAssetsPath.absolutePath} -I {androidJarPath.absolutePath} -F {resourcesApkPath.absolutePath}
-        </_> #|! ("sed" :: "/skipping hidden file/d" :: Nil)
+        </_> #|! (
+            "sed" :: "/skipping hidden file/d" :: Nil
+        )
     } dependsOn directory (mainAssetsPath)
+
+    override def aaptGenerateTask = execTask {
+        <_>
+          {aaptPath.absolutePath} package -m -M {androidManifestPath.absolutePath} -S {mainResPath.absolutePath}
+          -I {androidJarPath.absolutePath} -J {mainJavaSourcePath.absolutePath}
+        </_> #|! (
+            "sed" :: "/skipping hidden file/d" :: Nil
+        )
+    } dependsOn directory (mainJavaSourcePath)
 }
 
 class PicTumblr(info: ProjectInfo) extends ParentProject(info) {

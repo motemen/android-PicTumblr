@@ -303,7 +303,7 @@ class PicTumblrActivity extends Activity {
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
 // FIXME no toast here
 class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], tasks : PicTumblrActivity#TaskGroup, toast : String => Unit)
-        extends AsyncTask0[java.lang.Void, Seq[Tumblr#Post]] {
+        extends AsyncTask0[java.lang.Void, Either[String, Seq[Tumblr#Post]]] {
 
     val perPage = 10
 
@@ -312,37 +312,47 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
     }
 
     // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
-    override def doInBackground () : Seq[Tumblr#Post] = {
+    override def doInBackground () : Either[String, Seq[Tumblr#Post]] = {
         Log.d("LoadDashboardTask", "doInBackground")
-        // FIXME ここでエラーおきたときのハンドリング ふつうはどうするんだろう
+
         return tumblr.dashboard("start" -> ((page - 1) * perPage).toString, "num" -> perPage.toString)
     }
 
-    override def onPostExecute (loadedPosts : Seq[Tumblr#Post]) {
-        toast("Dashboard loaded.")
-
-        // post match { case Tumblr#PhotoPost(url) => ... } できない件は
-        // post match { case tumblr.PhotoPost(url) => ... } でいける
-        // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
-        loadedPosts.toList foreach {
-            case post : tumblr.PhotoPost => {
-                Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
-
-                posts += post
-
-                val context = imagesContainer.getContext()
-                val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
-                        .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
-                val layout = new RelativeLayout(context)
-                layout.setGravity(android.view.Gravity.CENTER)
-                imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
-
+    override def onPostExecute (result : Either[String, Seq[Tumblr#Post]]) {
+        result match {
+            case Left(error) => {
+                toast("error: " + error)
                 tasks.begin()
-                val task = new LoadPhotoTask(layout, { tasks.end() })
-                task.execute(post)
+                tasks.end()
             }
-            case post => {
-                Log.d("LoadDashboardTask", "cannot handle post: " + post.toString())
+
+            case Right(loadedPosts) => {
+                toast("Dashboard loaded.")
+
+                // post match { case Tumblr#PhotoPost(url) => ... } できない件は
+                // post match { case tumblr.PhotoPost(url) => ... } でいける
+                // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
+                loadedPosts.toList foreach {
+                    case post : tumblr.PhotoPost => {
+                        Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
+
+                        posts += post
+
+                        val context = imagesContainer.getContext()
+                        val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
+                                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
+                        val layout = new RelativeLayout(context)
+                        layout.setGravity(android.view.Gravity.CENTER)
+                        imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
+
+                        tasks.begin()
+                        val task = new LoadPhotoTask(layout, { tasks.end() })
+                        task.execute(post)
+                    }
+                    case post => {
+                        Log.d("LoadDashboardTask", "cannot handle post: " + post.toString())
+                    }
+                }
             }
         }
     }

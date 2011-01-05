@@ -16,7 +16,8 @@ class PicTumblrActivityTest
         assertTrue(tumblrOption isDefined)
 
         val tumblr = tumblrOption.get
-        val posts  = tumblr.dashboard()
+        val result = tumblr.dashboard()
+        assertTrue(result isRight)
     }
 
     def testTaskGroupCallback {
@@ -49,5 +50,33 @@ class PicTumblrActivityTest
         taskGroup.end()
         assertTrue(called)
         assertEquals(taskGroup.count, 0)
+    }
+
+    def testTumblrAuthFailure {
+        val prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(activity)
+        val originalEmail    = prefs.getString("email", "")
+        val originalPassword = prefs.getString("password", "")
+
+        val editor = prefs.edit
+        editor.putString("email", "bad email")
+        editor.putString("password", "bad password")
+        editor.commit
+
+        try {
+            val tumblrOption = activity.getTumblr()
+            assertTrue(tumblrOption isDefined)
+
+            val tumblr = tumblrOption.get
+            val result = tumblr.dashboard()
+
+            assertTrue(result isLeft)
+            assertEquals("Invalid credentials.", result.left.get)
+        } catch {
+            case _ => ()
+        }
+
+        editor.putString("email", originalEmail)
+        editor.putString("password", originalPassword)
+        editor.commit
     }
 }
