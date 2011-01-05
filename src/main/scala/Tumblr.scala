@@ -44,10 +44,10 @@ class Tumblr (email : String, password : String) {
         }
     }
 
-    def dashboard (params : (Symbol, String)*) : Seq[Post] = {
+    def dashboard (params : (String, String)*) : Seq[Post] = {
         for {
-            postElem <- ( makeApiRequest("dashboard", params ++ Seq('type -> "photo") : _*) \ "posts" \ "post" )
-            photoUrl <- (postElem \ "photo-url").reduceLeftOption {
+            postElem <- ( makeApiRequest("dashboard", params ++ Seq("type" -> "photo") : _*) \ "posts" \ "post" )
+            photoUrl <- ( postElem \ "photo-url" ).reduceLeftOption {
                 (node1, node2) => {
                     val w1 = getPhotoUrlNodeMaxWidth(node1)
                     val w2 = getPhotoUrlNodeMaxWidth(node2)
@@ -66,24 +66,24 @@ class Tumblr (email : String, password : String) {
 
     // XXX no comment, neither as
     def reblog (post : PhotoPost) { // FIXME Post だとダメ (value id is not a member of Tumblr.this.Post)
-        makeRawApiRequest("reblog", Symbol("post-id") -> post.id.toString(), Symbol("reblog-key") -> post.reblogKey) // FIXME Symbol()
+        makeRawApiRequest("reblog", "post-id" -> post.id.toString(), "reblog-key" -> post.reblogKey)
     }
 
     private def getPhotoUrlNodeMaxWidth (node : scala.xml.Node) : Int =
         ( node \ "@max-width" ).headOption map { _.text.toInt } filter { _ < maxWidth } getOrElse(0)
 
-    private def makeApiRequest (function : String, params : (Symbol, String)*) : scala.xml.Elem = {
+    private def makeApiRequest (function : String, params : (String, String)*) : scala.xml.Elem = {
         return XML.load(makeRawApiRequest(function, params : _*))
     }
 
     // 200 以外だとしぬのをなんとか
-    private def makeRawApiRequest (function : String, params : (Symbol, String)*) : java.io.InputStream = {
+    private def makeRawApiRequest (function : String, params : (String, String)*) : java.io.InputStream = {
         Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)
 
         var httpClient = new DefaultHttpClient
         val httpPost   = new HttpPost(API_ROOT + function)
-        val httpParams = for ((key, value) <- params ++ Map('email -> email, 'password -> password)) yield {
-            new BasicNameValuePair(key.name, value)
+        val httpParams = for ((key, value) <- params ++ Seq("email" -> email, "password" -> password)) yield {
+            new BasicNameValuePair(key, value)
         }
         httpPost.setEntity(new UrlEncodedFormEntity(httpParams))
 

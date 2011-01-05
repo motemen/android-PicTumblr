@@ -315,7 +315,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
     override def doInBackground () : Seq[Tumblr#Post] = {
         Log.d("LoadDashboardTask", "doInBackground")
         // FIXME ここでエラーおきたときのハンドリング ふつうはどうするんだろう
-        return tumblr.dashboard('start -> ((page - 1) * perPage).toString, 'num -> perPage.toString)
+        return tumblr.dashboard("start" -> ((page - 1) * perPage).toString, "num" -> perPage.toString)
     }
 
     override def onPostExecute (loadedPosts : Seq[Tumblr#Post]) {
