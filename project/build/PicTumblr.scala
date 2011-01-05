@@ -1,8 +1,28 @@
 import sbt._
 import Process._
 
+package sbt {
+
+    object ProcessBuilderExtra {
+        implicit def a2b (xml : scala.xml.Elem) : ProcessBuilderExtra
+            = new ProcessBuilderExtra(Process(xml))
+        implicit def a2b (p : ProcessBuilder) : ProcessBuilderExtra
+            = new ProcessBuilderExtra(p)
+    }
+
+    class ProcessBuilderExtra (p : ProcessBuilder) {
+        def #|! (other: ProcessBuilder): ProcessBuilder = {
+            require(other.canPipeTo, "Piping to multiple processes is not supported.")
+            new PipedProcessBuilder(p, other, true)
+        }
+    }
+
+}
+
+import sbt.ProcessBuilderExtra._
+
 trait Defaults {
-  def androidPlatformName = "android-7"
+    def androidPlatformName = "android-7"
 }
 
 trait AutoRestartAdbDaemon extends AndroidProject {
@@ -20,20 +40,29 @@ trait AutoRestartAdbDaemon extends AndroidProject {
     }
 }
 
+trait SuppressAaptWarnings extends AndroidProject {
+    override def aaptPackageTask = execTask {
+        <_>
+            {aaptPath.absolutePath} package -f -M {androidManifestPath.absolutePath} -S {mainResPath.absolutePath}
+            -A {mainAssetsPath.absolutePath} -I {androidJarPath.absolutePath} -F {resourcesApkPath.absolutePath}
+        </_> #|! ("sed" :: "/skipping hidden file/d" :: Nil)
+    } dependsOn directory (mainAssetsPath)
+}
+
 class PicTumblr(info: ProjectInfo) extends ParentProject(info) {
-  override def shouldCheckOutputDirectories = false
-  override def updateAction = task { None }
+    override def shouldCheckOutputDirectories = false
+    override def updateAction = task { None }
 
-  lazy val main  = project(".",     "PicTumblr - app",   new MainProject(_))
-  lazy val tests = project("tests", "PicTumblr - tests", new TestProject(_), main)
+    lazy val main  = project(".",     "PicTumblr - app",   new MainProject(_))
+    lazy val tests = project("tests", "PicTumblr - tests", new TestProject(_), main)
 
-  class MainProject(info: ProjectInfo) extends AndroidProject(info) with Defaults with MarketPublish with AutoRestartAdbDaemon {
-    val keyalias  = "change-me"
-    // val scalatest = "org.scalatest" % "scalatest" % "1.0" % "test"
-  }
+    class MainProject(info: ProjectInfo) extends AndroidProject(info) with Defaults with MarketPublish with AutoRestartAdbDaemon with SuppressAaptWarnings {
+        val keyalias  = "change-me"
+        // val scalatest = "org.scalatest" % "scalatest" % "1.0" % "test"
+    }
 
-  class TestProject(info: ProjectInfo) extends AndroidTestProject(info) with Defaults with AutoRestartAdbDaemon {
-    override def proguardInJars = runClasspath --- proguardExclude
-    val scalatest = "org.scalatest" % "scalatest" % "1.0"
-  }
+    class TestProject(info: ProjectInfo) extends AndroidTestProject(info) with Defaults with AutoRestartAdbDaemon with SuppressAaptWarnings {
+        override def proguardInJars = runClasspath --- proguardExclude
+        val scalatest = "org.scalatest" % "scalatest" % "1.0"
+    }
 }
