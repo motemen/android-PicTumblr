@@ -217,7 +217,7 @@ class PicTumblrActivity extends Activity {
                 tumblr,
                 { globalTasks.end(); toast("Reblogged.") }
             )
-            task.execute()
+            task.execute(post)
         }
     }
 

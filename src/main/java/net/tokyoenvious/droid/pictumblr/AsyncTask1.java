@@ -4,7 +4,7 @@ import android.os.AsyncTask;
 
 public abstract class AsyncTask1<Params, Progress, Result> extends AsyncTask<Params, Progress, Result> {
     protected Result doInBackground (Params ... params) {
-        return doInBackground(params[0]);
+        return doInBackground(params.length > 0 ? params[0] : null);
     }
     abstract protected Result doInBackground (Params p);
 
