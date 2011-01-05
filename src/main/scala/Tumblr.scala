@@ -4,6 +4,7 @@ import android.util.Log
 import scala.xml.XML
 import scala.io.Source
 import scala.collection.JavaConversions._
+import util.control.Exception
 import java.net.URL
 import java.net.URLEncoder
 
@@ -17,6 +18,8 @@ import org.apache.http.message.BasicNameValuePair
 import org.apache.http.protocol.HTTP
 
 class Tumblr (email : String, password : String) {
+    type MaybeError[A] = Either[String, A]
+
     val API_ROOT = "http://www.tumblr.com/api/"
     val maxWidth = 500 // TODO make configurable
 
@@ -47,8 +50,7 @@ class Tumblr (email : String, password : String) {
     }
     */
 
-    // TODO Either[String, Seq[Post]]
-    def dashboard (params : (String, String)*) : Either[String, Seq[Post]] = {
+    def dashboard (params : (String, String)*) : MaybeError[Seq[Post]] = {
         makeApiRequest("dashboard", params ++ Seq("type" -> "photo") : _*).right map {
             xml => for {
                 postElem <- ( xml \ "posts" \ "post" )
@@ -78,32 +80,35 @@ class Tumblr (email : String, password : String) {
     private def getPhotoUrlNodeMaxWidth (node : scala.xml.Node) : Int =
         ( node \ "@max-width" ).headOption map { _.text.toInt } filter { _ < maxWidth } getOrElse(0)
 
-    private def makeApiRequest (function : String, params : (String, String)*) : Either[String, scala.xml.Elem] = {
+    private def makeApiRequest (function : String, params : (String, String)*) : MaybeError[scala.xml.Elem] = {
         makeRawApiRequest(function, params : _*).right map { XML.load(_) }
     }
 
     // 200 以外だとしぬのをなんとか
-    private def makeRawApiRequest (function : String, params : (String, String)*) : Either[String, java.io.InputStream] = {
-        Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)
+    private def makeRawApiRequest (function : String, params : (String, String)*) : MaybeError[java.io.InputStream]
+        = Exception.allCatch.either {
+            Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)
 
-        var httpClient = new DefaultHttpClient
-        val httpPost   = new HttpPost(API_ROOT + function)
-        val httpParams = for ((key, value) <- params ++ Seq("email" -> email, "password" -> password)) yield {
-            new BasicNameValuePair(key, value)
+            var httpClient = new DefaultHttpClient
+            val httpPost   = new HttpPost(API_ROOT + function)
+            val httpParams = for ((key, value) <- params ++ Seq("email" -> email, "password" -> password)) yield {
+                new BasicNameValuePair(key, value)
+            }
+            httpPost.setEntity(new UrlEncodedFormEntity(httpParams))
+
+            val httpResponse = httpClient.execute(httpPost)
+            val statusLine   = httpResponse.getStatusLine
+            Log.d("Tumblr#makeRawApiRequest", "Status: " + statusLine)
+
+            // TODO error on non-2xx
+            val statusCode = statusLine.getStatusCode
+            val in = new BufferedHttpEntity(httpResponse.getEntity).getContent
+            if (200 <= statusCode && statusCode <= 299) {
+                Right { in }
+            } else {
+                Left { Source.fromInputStream(in).mkString }
+            }
         }
-        httpPost.setEntity(new UrlEncodedFormEntity(httpParams))
-
-        val httpResponse = httpClient.execute(httpPost)
-        val statusLine   = httpResponse.getStatusLine
-        Log.d("Tumblr#makeRawApiRequest", "Status: " + statusLine)
-
-        // TODO error on non-2xx
-        val statusCode = statusLine.getStatusCode
-        val in = new BufferedHttpEntity(httpResponse.getEntity).getContent
-        if (200 <= statusCode && statusCode <= 299) {
-            return Right(in)
-        } else {
-            return Left(Source.fromInputStream(in).mkString)
-        }
-    }
+        .left.map { _.toString }
+        .right.flatMap { x => x }
 }

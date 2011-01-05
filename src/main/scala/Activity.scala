@@ -303,7 +303,7 @@ class PicTumblrActivity extends Activity {
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
 // FIXME no toast here
 class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], tasks : PicTumblrActivity#TaskGroup, toast : String => Unit)
-        extends AsyncTask0[java.lang.Void, Either[String, Seq[Tumblr#Post]]] {
+        extends AsyncTask0[java.lang.Void, Tumblr#MaybeError[Seq[Tumblr#Post]]] {
 
     val perPage = 10
 
@@ -312,13 +312,13 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
     }
 
     // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
-    override def doInBackground () : Either[String, Seq[Tumblr#Post]] = {
+    override def doInBackground () : Tumblr#MaybeError[Seq[Tumblr#Post]] = {
         Log.d("LoadDashboardTask", "doInBackground")
 
         return tumblr.dashboard("start" -> ((page - 1) * perPage).toString, "num" -> perPage.toString)
     }
 
-    override def onPostExecute (result : Either[String, Seq[Tumblr#Post]]) {
+    override def onPostExecute (result : Tumblr#MaybeError[Seq[Tumblr#Post]]) {
         result match {
             case Left(error) => {
                 toast("error: " + error)

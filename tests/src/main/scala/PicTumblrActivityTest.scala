@@ -11,6 +11,22 @@ class PicTumblrActivityTest
     // なんか毎回 onCreate が走っている気がする……
     lazy val activity = getActivity()
 
+    lazy val prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(activity)
+    lazy val originalEmail    = prefs.getString("email", "")
+    lazy val originalPassword = prefs.getString("password", "")
+
+    override def setUp () {
+        originalEmail
+        originalPassword
+    }
+
+    override def tearDown () {
+        val editor = prefs.edit
+        editor.putString("email", originalEmail)
+        editor.putString("password", originalPassword)
+        editor.commit
+    }
+
     def testTumblr {
         val tumblrOption = activity.getTumblr()
         assertTrue(tumblrOption isDefined)
@@ -53,30 +69,18 @@ class PicTumblrActivityTest
     }
 
     def testTumblrAuthFailure {
-        val prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(activity)
-        val originalEmail    = prefs.getString("email", "")
-        val originalPassword = prefs.getString("password", "")
-
         val editor = prefs.edit
         editor.putString("email", "bad email")
         editor.putString("password", "bad password")
         editor.commit
 
-        try {
-            val tumblrOption = activity.getTumblr()
-            assertTrue(tumblrOption isDefined)
+        val tumblrOption = activity.getTumblr()
+        assertTrue(tumblrOption isDefined)
 
-            val tumblr = tumblrOption.get
-            val result = tumblr.dashboard()
+        val tumblr = tumblrOption.get
+        val result = tumblr.dashboard()
 
-            assertTrue(result isLeft)
-            assertEquals("Invalid credentials.", result.left.get)
-        } catch {
-            case _ => ()
-        }
-
-        editor.putString("email", originalEmail)
-        editor.putString("password", originalPassword)
-        editor.commit
+        assertTrue(result isLeft)
+        assertEquals("Invalid credentials.", result.left.get)
     }
 }
