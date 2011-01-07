@@ -306,7 +306,7 @@ class PicTumblrActivity extends Activity {
 // AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
 // FIXME no toast here
 class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], tasks : PicTumblrActivity#TaskGroup, toast : String => Unit)
-        extends AsyncTask0[java.lang.Void, Tumblr#MaybeError[Seq[Tumblr#Post]]] {
+        extends AsyncTask0[java.lang.Void, Tumblr#MaybeError[Seq[Tumblr#PhotoPost]]] {
 
     val perPage = 15 // TODO make configurable
 
@@ -315,13 +315,13 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
     }
 
     // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
-    override def doInBackground () : Tumblr#MaybeError[Seq[Tumblr#Post]] = {
+    override def doInBackground () : Tumblr#MaybeError[Seq[Tumblr#PhotoPost]] = {
         Log.d("LoadDashboardTask", "doInBackground")
 
         return tumblr.dashboard("start" -> ((page - 1) * perPage).toString, "num" -> perPage.toString)
     }
 
-    override def onPostExecute (result : Tumblr#MaybeError[Seq[Tumblr#Post]]) {
+    override def onPostExecute (result : Tumblr#MaybeError[Seq[Tumblr#PhotoPost]]) {
         result match {
             case Left(error) => {
                 toast("error: " + error)
@@ -336,7 +336,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
                 // post match { case tumblr.PhotoPost(url) => ... } でいける
                 // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
                 loadedPosts.toList foreach {
-                    case post : tumblr.PhotoPost => {
+                    post => {
                         Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
 
                         posts += post
@@ -351,9 +351,6 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
                         tasks.begin()
                         val task = new LoadPhotoTask(layout, { tasks.end() })
                         task.execute(post)
-                    }
-                    case post => {
-                        Log.d("LoadDashboardTask", "cannot handle post: " + post.toString())
                     }
                 }
             }
@@ -410,10 +407,10 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
 }
 
 class ReblogPostTask (tumblr : Tumblr, callback : => Unit)
-        extends AsyncTask1[Tumblr#Post, java.lang.Void, Unit] {
+        extends AsyncTask1[Tumblr#PhotoPost, java.lang.Void, Unit] {
 
-    override def doInBackground (post : Tumblr#Post) : Unit = {
-        tumblr.reblog(post.asInstanceOf[tumblr.PhotoPost])
+    override def doInBackground (post : Tumblr#PhotoPost) : Unit = {
+        tumblr.reblog(post)
     }
 
     override def onPostExecute (u : Unit) {

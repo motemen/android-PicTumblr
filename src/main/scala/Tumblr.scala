@@ -23,11 +23,7 @@ class Tumblr (email : String, password : String) {
     val API_ROOT = "http://www.tumblr.com/api/"
     val maxWidth = 500 // TODO make configurable
 
-    // TODO 意味ないので PhotoPost だけに
-    abstract class Post(id : Long, reblogKey : String)
-    case class PhotoPost (id : Long, reblogKey : String, urlWithSlug : String, photoUrl : String, photoLinkUrl : Option[String], photoCaption : String)
-            extends Post(id, reblogKey) {
-
+    class PhotoPost (val id : Long, val reblogKey : String, val urlWithSlug : String, val photoUrl : String, val photoLinkUrl : Option[String], val photoCaption : String) {
         lazy val plainCaption : String = {
             val plainText = """\s+""".r.replaceAllIn("<.*?>".r.replaceAllIn(photoCaption, ""), " ")
             val entity    = new StringEntity(plainText, HTTP.UTF_8)
@@ -50,7 +46,7 @@ class Tumblr (email : String, password : String) {
     }
     */
 
-    def dashboard (params : (String, String)*) : MaybeError[Seq[Post]] = {
+    def dashboard (params : (String, String)*) : MaybeError[Seq[PhotoPost]] = {
         makeApiRequest("dashboard", params ++ Seq("type" -> "photo") : _*).right map {
             xml => for {
                 postElem <- ( xml \ "posts" \ "post" )
@@ -73,7 +69,7 @@ class Tumblr (email : String, password : String) {
     }
 
     // XXX no comment, neither as
-    def reblog (post : PhotoPost) { // FIXME Post だとダメ (value id is not a member of Tumblr.this.Post)
+    def reblog (post : Tumblr#PhotoPost) {
         makeRawApiRequest("reblog", "post-id" -> post.id.toString(), "reblog-key" -> post.reblogKey)
     }
 
