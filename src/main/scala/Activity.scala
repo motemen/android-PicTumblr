@@ -24,7 +24,7 @@ class PicTumblrActivity extends Activity {
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
 
     val BACKWARD_OFFSET = 3
-    val FORWARD_OFFSET  = 6
+    val FORWARD_OFFSET  = 4
 
     // TODO TypedResources
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
@@ -34,6 +34,7 @@ class PicTumblrActivity extends Activity {
     lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
                 .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
 
+    // TODO 中途半端にスクロールしない
     lazy val gestureDetector = new GestureDetector(
         new GestureDetector.SimpleOnGestureListener() {
             override def onFling (e1 : MotionEvent, e2 : MotionEvent, vx : Float, vy : Float) : Boolean = {
@@ -105,8 +106,8 @@ class PicTumblrActivity extends Activity {
     }
 
     override def onCreateOptionsMenu (menu : Menu) : Boolean = {
-        val itemRefresh = menu.add(Menu.NONE, MENU_ITEM_ID_REFRESH, Menu.NONE, "Refresh")
-        itemRefresh.setIcon(R.drawable.ic_menu_refresh)
+        // val itemRefresh = menu.add(Menu.NONE, MENU_ITEM_ID_REFRESH, Menu.NONE, "Refresh")
+        // itemRefresh.setIcon(R.drawable.ic_menu_refresh)
 
         val itemSetting = menu.add(Menu.NONE, MENU_ITEM_ID_SETTING, Menu.NONE, "Setting")
         itemSetting.setIcon(android.R.drawable.ic_menu_preferences)
@@ -117,7 +118,7 @@ class PicTumblrActivity extends Activity {
     override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
             case MENU_ITEM_ID_REFRESH => goBackDashboard
-            case MENU_ITEM_ID_SETTING => startSettingActivity
+            case MENU_ITEM_ID_SETTING => startPreferenceActivity
         }
 
         return true
@@ -175,9 +176,15 @@ class PicTumblrActivity extends Activity {
         return posts.get(currentIndex)
     }
 
-    def startSettingActivity () {
+    def startPreferenceActivity () {
         val intent = new Intent(this, classOf[PicTumblrPrefernceActivity])
-        startActivity(intent)
+        startActivityForResult(intent, 0)
+    }
+
+    override def onActivityResult (requestCode : Int, resultCode : Int, intent : Intent) {
+        // 今のところ設定変更のみ
+        page = 0
+        goBackDashboard
     }
 
     def openTumblr () {
@@ -223,12 +230,11 @@ class PicTumblrActivity extends Activity {
         val password = prefs.getString("password", "")
 
         if (email.length == 0 || password.length == 0) {
-            // TODO 戻ってきたら再アクセスとかすべきだが…
-            startSettingActivity()
+            startPreferenceActivity
             return None
+        } else {
+            return Some(new Tumblr(email, password))
         }
-
-        return Some(new Tumblr(email, password))
     }
 
     def goBackDashboard () {
@@ -257,7 +263,7 @@ class PicTumblrActivity extends Activity {
                     )
                     task.execute()
 
-                    page = page + 1
+                    page = page + 1 // FIXME 成功したときだけ
 
                 } catch {
                     case e => {
@@ -301,7 +307,7 @@ class PicTumblrActivity extends Activity {
 class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], tasks : PicTumblrActivity#TaskGroup, toast : String => Unit)
         extends AsyncTask0[java.lang.Void, Tumblr#MaybeError[Seq[Tumblr#Post]]] {
 
-    val perPage = 20 // TODO make configurable
+    val perPage = 15 // TODO make configurable
 
     override def onPreExecute () {
         toast("Loading dashboard " + ((page - 1) * perPage + 1) + "-" + (page * perPage))
