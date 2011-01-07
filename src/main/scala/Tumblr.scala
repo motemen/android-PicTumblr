@@ -84,7 +84,6 @@ class Tumblr (email : String, password : String) {
         makeRawApiRequest(function, params : _*).right map { XML.load(_) }
     }
 
-    // 200 以外だとしぬのをなんとか
     private def makeRawApiRequest (function : String, params : (String, String)*) : MaybeError[java.io.InputStream]
         = Exception.allCatch.either {
             Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)

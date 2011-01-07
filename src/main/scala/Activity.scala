@@ -24,7 +24,7 @@ class PicTumblrActivity extends Activity {
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
 
     val BACKWARD_OFFSET = 3
-    val FORWARD_OFFSET  = 4
+    val FORWARD_OFFSET  = 6
 
     // TODO TypedResources
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
@@ -128,9 +128,9 @@ class PicTumblrActivity extends Activity {
         ) {
             menu.setHeaderTitle(post.plainCaption)
             
-            var itemOpenTumblr    = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR,     Menu.NONE, "Open Tumblr Page")
-            var itemOpenPhotoLink = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK, Menu.NONE, "Open Photo Link")
-            var itemReblog        = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG,          Menu.NONE, "Reblog")
+            val itemOpenTumblr    = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR,     Menu.NONE, "Open Tumblr Page")
+            val itemOpenPhotoLink = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK, Menu.NONE, "Open Photo Link")
+            val itemReblog        = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG,          Menu.NONE, "Reblog")
 
             super.onCreateContextMenu(menu, v, menuInfo)
         }
@@ -149,7 +149,7 @@ class PicTumblrActivity extends Activity {
     def purgeOldAndLoadNewPosts () {
         Log.d("PicTumblrActivity", "purgeOldAndLoadNewPosts")
 
-        for (i <- 1 to (posts.size min (currentIndex - BACKWARD_OFFSET))) {
+        for (i <- 1 to ((currentIndex - BACKWARD_OFFSET) min (posts.size))) {
             Log.d("PicTumblrActivity", "dequeue post")
             posts.dequeue()
             imagesContainer.removeViewAt(0)
@@ -175,13 +175,6 @@ class PicTumblrActivity extends Activity {
     def startSettingActivity () {
         val intent = new Intent(this, classOf[PicTumblrPrefernceActivity])
         startActivity(intent)
-    }
-
-    def showPostInfoDialog () {
-        Log.d("PicTumblrActivity", "showPostInfoDialog: " + currentPost)
-
-        val dialog = new android.app.Dialog(this)
-        dialog.show()
     }
 
     def openTumblr () {
@@ -305,7 +298,7 @@ class PicTumblrActivity extends Activity {
 class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], tasks : PicTumblrActivity#TaskGroup, toast : String => Unit)
         extends AsyncTask0[java.lang.Void, Tumblr#MaybeError[Seq[Tumblr#Post]]] {
 
-    val perPage = 10
+    val perPage = 20 // TODO make configurable
 
     override def onPreExecute () {
         toast("Loading dashboard " + ((page - 1) * perPage + 1) + "-" + (page * perPage))

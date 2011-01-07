@@ -60,12 +60,12 @@ trait SuppressAaptWarnings extends AndroidProject {
     } dependsOn directory (mainJavaSourcePath)
 }
 
-class PicTumblr(info: ProjectInfo) extends ParentProject(info) {
+class PicTumblrProject (info: ProjectInfo) extends ParentProject(info) {
     override def shouldCheckOutputDirectories = false
     override def updateAction = task { None }
 
-    lazy val main  = project(".",     "PicTumblr - app",   new MainProject(_))
-    lazy val tests = project("tests", "PicTumblr - tests", new TestProject(_), main)
+    lazy val main  = project(".",     "PicTumblr", new MainProject(_))
+    lazy val tests = project("tests", "tests",     new TestProject(_), main)
 
     class MainProject(info: ProjectInfo) extends AndroidProject(info) with Defaults with MarketPublish with AutoRestartAdbDaemon with SuppressAaptWarnings {
         val keyalias  = "change-me"
