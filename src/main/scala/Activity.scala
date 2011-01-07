@@ -29,6 +29,11 @@ class PicTumblrActivity extends Activity {
     // TODO TypedResources
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
     lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
+
+    lazy val vibrator = getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[android.os.Vibrator]
+    lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
+                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
+
     lazy val gestureDetector = new GestureDetector(
         new GestureDetector.SimpleOnGestureListener() {
             override def onFling (e1 : MotionEvent, e2 : MotionEvent, vx : Float, vy : Float) : Boolean = {
@@ -49,6 +54,7 @@ class PicTumblrActivity extends Activity {
 
             override def onLongPress (e : MotionEvent) {
                 Log.d("PicTumblrActivity", "onLongPress")
+                vibrator.vibrate(25)
                 PicTumblrActivity.this.openContextMenu(horizontalScrollView)
             }
 
@@ -58,9 +64,6 @@ class PicTumblrActivity extends Activity {
             }
         }
     )
-
-    lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
-                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
 
     lazy val globalTasks = new TaskGroup(
         { setProgressBarIndeterminateVisibility(false) },
