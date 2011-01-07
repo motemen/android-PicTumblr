@@ -61,7 +61,8 @@ class PicTumblrActivity extends Activity {
 
             override def onDoubleTap (e : MotionEvent) : Boolean = {
                 Log.d("PicTumblrActivity", "onDoubleTap")
-                return false
+                doReblogPost
+                return true
             }
         }
     )
