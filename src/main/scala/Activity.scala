@@ -42,12 +42,10 @@ class PicTumblrActivity extends Activity {
                     return true
                 }
 
-                purgeOldAndLoadNewPosts()
-
                 if (e1.getX() - e2.getX() < 0) {
-                    horizontalScrollView.smoothScrollBy(-horizontalScrollView.getWidth(), 0)
+                    toPreviousPost()
                 } else {
-                    horizontalScrollView.smoothScrollBy(+horizontalScrollView.getWidth(), 0)
+                    toNextPost()
                 }
 
                 return true
@@ -172,6 +170,24 @@ class PicTumblrActivity extends Activity {
         val index = scala.math.round(scrollX / displayWidth toDouble).toInt
         Log.d("PicTumblrActivity", "currentIndex: " + index)
         return index
+    }
+
+    def toNextPost () {
+        purgeOldAndLoadNewPosts()
+
+        val scrollX = horizontalScrollView.getScrollX()
+        horizontalScrollView.smoothScrollTo(
+            scala.math.round(scrollX / displayWidth.toDouble + 0.75).toInt * displayWidth, 0
+        )
+    }
+
+    def toPreviousPost () {
+        purgeOldAndLoadNewPosts()
+
+        val scrollX = horizontalScrollView.getScrollX()
+        horizontalScrollView.smoothScrollTo(
+            scala.math.round(scrollX / displayWidth.toDouble - 0.75).toInt * displayWidth, 0
+        )
     }
 
     def currentPost () : Option[Tumblr#PhotoPost] = {
