@@ -167,8 +167,21 @@ class PicTumblrActivity extends Activity {
 
     def currentIndex () : Int = {
         val scrollX = horizontalScrollView.getScrollX()
-        val index = scala.math.round(scrollX / displayWidth toDouble).toInt
-        Log.d("PicTumblrActivity", "currentIndex: " + index)
+        val index = scrollX / displayWidth
+        val delta = scrollX % displayWidth
+
+        if (delta != 0) {
+            if (delta * 2 < displayWidth) {
+                horizontalScrollView.smoothScrollBy(-delta - displayWidth, 0)
+                return index
+            } else {
+                horizontalScrollView.smoothScrollBy(-delta + displayWidth, 0)
+                return index + 1
+            }
+        } else {
+            return index
+        }
+ 
         return index
     }
 
