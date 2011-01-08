@@ -25,26 +25,15 @@ class Tumblr (email : String, password : String) {
 
     class PhotoPost (val id : Long, val reblogKey : String, val urlWithSlug : String, val photoUrl : String, val photoLinkUrl : Option[String], val photoCaption : String) {
         lazy val plainCaption : String = {
-            val plainText = """\s+""".r.replaceAllIn("<.*?>".r.replaceAllIn(photoCaption, ""), " ")
+            val plainText = photoCaption.replaceAll("<.*?>", "").replaceAll("""\s+""", " ")
             val entity    = new StringEntity(plainText, HTTP.UTF_8)
             Source.fromInputStream(entity.getContent).mkString
+                .replaceAll("&lt;",   "<")
+                .replaceAll("&gt;",   ">")
+                .replaceAll("&quot;", """"""") // "
+                .replaceAll("&amp;",  "&")
         }
     }
-
-    /*
-    // とりあえずタイトルを返す
-    def authenticate () : Option[String] = {
-        try {
-            // XXX API lv7 でえらる…… (SDK のバグ？)
-            return makeApiRequest("authenticate").iterator.next.attribute("title").map(_.text)
-        } catch {
-            case e => {
-                Log.d("Tumblr.authenticate", e.toString)
-                return None
-            }
-        }
-    }
-    */
 
     def dashboard (params : (String, String)*) : MaybeError[Seq[PhotoPost]] = {
         makeApiRequest("dashboard", params ++ Seq("type" -> "photo") : _*).right map {

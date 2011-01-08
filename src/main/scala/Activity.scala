@@ -24,7 +24,7 @@ class PicTumblrActivity extends Activity {
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
 
     val BACKWARD_OFFSET = 3
-    val FORWARD_OFFSET  = 4
+    val FORWARD_OFFSET  = 10
 
     // TODO TypedResources
     lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
@@ -85,6 +85,7 @@ class PicTumblrActivity extends Activity {
         setContentView(R.layout.main)
 
         horizontalScrollView.setOnCreateContextMenuListener(this)
+        horizontalScrollView.setHorizontalScrollBarEnabled(false)
 
         gestureDetector.setIsLongpressEnabled(true)
 
@@ -168,7 +169,7 @@ class PicTumblrActivity extends Activity {
 
     def currentIndex () : Int = {
         val scrollX = horizontalScrollView.getScrollX()
-        val index = scrollX / displayWidth
+        val index = scala.math.round(scrollX / displayWidth toDouble).toInt
         Log.d("PicTumblrActivity", "currentIndex: " + index)
         return index
     }
@@ -214,6 +215,7 @@ class PicTumblrActivity extends Activity {
         ) {
             Log.d("PicTumblrActivity", "doReblogPost: " + post)
 
+            // TODO なんかもっと見目よく、何リブログしてるか分かるように
             globalTasks.begin()
             toast("Reblogging...")
 
@@ -278,9 +280,16 @@ class PicTumblrActivity extends Activity {
         }
     }
 
+    var currentToast : Toast = null
     def toast (message : String) {
         Log.i("PicTumblrActivity", "toast: " + message)
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show
+
+        if (currentToast != null) {
+            currentToast.cancel()
+        }
+
+        currentToast = Toast.makeText(this, message, Toast.LENGTH_SHORT)
+        currentToast.show()
     }
 
     class TaskGroup (callback: => Unit, preCallback : => Unit = {}) {
@@ -308,7 +317,7 @@ class PicTumblrActivity extends Activity {
 class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], tasks : PicTumblrActivity#TaskGroup, toast : String => Unit)
         extends AsyncTask0[java.lang.Void, Tumblr#MaybeError[Seq[Tumblr#PhotoPost]]] {
 
-    val perPage = 15 // TODO make configurable
+    val perPage = 20 // TODO make configurable
 
     override def onPreExecute () {
         toast("Loading dashboard " + ((page - 1) * perPage + 1) + "-" + (page * perPage))
@@ -335,23 +344,21 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
                 // post match { case Tumblr#PhotoPost(url) => ... } できない件は
                 // post match { case tumblr.PhotoPost(url) => ... } でいける
                 // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
-                loadedPosts.toList foreach {
-                    post => {
-                        Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
+                for (post <- loadedPosts) {
+                    Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
 
-                        posts += post
+                    posts += post
 
-                        val context = imagesContainer.getContext()
-                        val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
-                                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
-                        val layout = new RelativeLayout(context)
-                        layout.setGravity(android.view.Gravity.CENTER)
-                        imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
+                    val context = imagesContainer.getContext()
+                    val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
+                            .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
+                    val layout = new RelativeLayout(context)
+                    layout.setGravity(android.view.Gravity.CENTER)
+                    imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
 
-                        tasks.begin()
-                        val task = new LoadPhotoTask(layout, { tasks.end() })
-                        task.execute(post)
-                    }
+                    tasks.begin()
+                    val task = new LoadPhotoTask(layout, { tasks.end() })
+                    task.execute(post)
                 }
             }
         }
@@ -379,7 +386,7 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         val httpResponse = httpClient.execute(httpGet)
 
         val bitmap  = BitmapFactory.decodeStream(
-            new BufferedHttpEntity(httpResponse.getEntity).getContent()
+            new BufferedHttpEntity(httpResponse.getEntity).getContent(), null, options
         )
 
         Log.d("LoadPhotoTask", "doInBackground: loaded " + photoPost.photoUrl)
