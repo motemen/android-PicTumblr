@@ -385,10 +385,6 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         extends AsyncTask1[Tumblr#PhotoPost, java.lang.Void, Bitmap] {
 
     override def doInBackground (photoPost : Tumblr#PhotoPost) : Bitmap = {
-        // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
-        val options = new BitmapFactory.Options
-        options.inPreferredConfig = Bitmap.Config.RGB_565
-
         // これだと読み込みに失敗することが多い
         // ref. http://stackoverflow.com/questions/1630258/android-problem-bug-with-threadsafeclientconnmanager-downloading-images
         /*
@@ -397,17 +393,23 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         )
         */
 
-        var httpClient = new DefaultHttpClient
-        val httpGet = new HttpGet(photoPost.photoUrl)
+        var httpClient   = new DefaultHttpClient
+        val httpGet      = new HttpGet(photoPost.photoUrl)
         val httpResponse = httpClient.execute(httpGet)
 
-        val bitmap  = BitmapFactory.decodeStream(
-            new BufferedHttpEntity(httpResponse.getEntity).getContent(), null, options
-        )
+        // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
+        val options = new BitmapFactory.Options
+        options.inPreferredConfig = Bitmap.Config.RGB_565
 
-        Log.d("LoadPhotoTask", "doInBackground: loaded " + photoPost.photoUrl)
-
-        return bitmap
+        try {
+            val bitmap = BitmapFactory.decodeStream(
+                new BufferedHttpEntity(httpResponse.getEntity).getContent(), null, options
+            )
+            Log.d("LoadPhotoTask", "doInBackground: loaded " + photoPost.photoUrl)
+            return bitmap
+        } catch {
+            case _ => return null
+        }
     }
 
     override def onPreExecute () {
