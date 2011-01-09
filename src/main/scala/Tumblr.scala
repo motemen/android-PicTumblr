@@ -16,6 +16,7 @@ import org.apache.http.entity.StringEntity
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.message.BasicNameValuePair
 import org.apache.http.protocol.HTTP
+import org.apache.commons.lang.StringEscapeUtils
 
 class Tumblr (email : String, password : String) {
     type MaybeError[A] = Either[String, A]
@@ -27,11 +28,7 @@ class Tumblr (email : String, password : String) {
         lazy val plainCaption : String = {
             val plainText = photoCaption.replaceAll("<.*?>", "").replaceAll("""\s+""", " ")
             val entity    = new StringEntity(plainText, HTTP.UTF_8)
-            Source.fromInputStream(entity.getContent).mkString
-                .replaceAll("&lt;",   "<")
-                .replaceAll("&gt;",   ">")
-                .replaceAll("&quot;", """"""") // "
-                .replaceAll("&amp;",  "&")
+            StringEscapeUtils.unescapeHtml(Source.fromInputStream(entity.getContent).mkString)
         }
     }
 
@@ -73,7 +70,7 @@ class Tumblr (email : String, password : String) {
         = Exception.allCatch.either {
             Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)
 
-            var httpClient = new DefaultHttpClient
+            val httpClient = new DefaultHttpClient
             val httpPost   = new HttpPost(API_ROOT + function)
             val httpParams = for ((key, value) <- params ++ Seq("email" -> email, "password" -> password)) yield {
                 new BasicNameValuePair(key, value)

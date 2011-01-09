@@ -70,6 +70,7 @@ class PicTumblrProject (info: ProjectInfo) extends ParentProject(info) {
     class MainProject(info: ProjectInfo) extends AndroidProject(info) with Defaults with MarketPublish with AutoRestartAdbDaemon with SuppressAaptWarnings {
         val keyalias  = "change-me"
         // val scalatest = "org.scalatest" % "scalatest" % "1.0" % "test"
+        val apacheCommons = "commons-lang" % "commons-lang" % "2.5"
     }
 
     class TestProject(info: ProjectInfo) extends AndroidTestProject(info) with Defaults with AutoRestartAdbDaemon with SuppressAaptWarnings {
