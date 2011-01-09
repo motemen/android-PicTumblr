@@ -1,14 +1,14 @@
 package net.tokyoenvious.droid.pictumblr.tests
 
-import junit.framework.Assert._
 import _root_.android.test.AndroidTestCase
+import org.scalatest.junit.ShouldMatchersForJUnit
 
 import net.tokyoenvious.droid.pictumblr.Tumblr
 
-class TumblrTests extends AndroidTestCase {
+class TumblrTests extends AndroidTestCase with ShouldMatchersForJUnit {
 
     def testPackageIsCorrect {
-        assertEquals("net.tokyoenvious.droid.pictumblr", getContext.getPackageName)
+        getContext.getPackageName should be ("net.tokyoenvious.droid.pictumblr")
     }
 
     def testTumblrPhotoPost {
@@ -19,10 +19,10 @@ class TumblrTests extends AndroidTestCase {
             "http://localhost/url-with-slug",
             "http://localhost/photo-url",
             Some("http://localhost/photo-link-url"),
-            "photo-caption&lt;&#100;"
+            "photo-caption&lt;&#100;&gt;"
         )
-        assertNotNull(post)
-        assertEquals("photo-caption<d", post.plainCaption)
+        post should not be (null)
+        post.plainCaption should be ("photo-caption<d>")
     }
 
 }

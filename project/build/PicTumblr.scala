@@ -75,6 +75,8 @@ class PicTumblrProject (info: ProjectInfo) extends ParentProject(info) {
 
     class TestProject(info: ProjectInfo) extends AndroidTestProject(info) with Defaults with AutoRestartAdbDaemon with SuppressAaptWarnings {
         override def proguardInJars = runClasspath --- proguardExclude
-        val scalatest = "org.scalatest" % "scalatest" % "1.0"
+        override def proguardOption = "-dontnote scala.Enumeration"
+
+        val scalatest = "org.scalatest" % "scalatest" % "1.2"
     }
 }
