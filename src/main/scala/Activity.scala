@@ -190,7 +190,7 @@ class PicTumblrActivity extends Activity {
 
         val scrollX = horizontalScrollView.getScrollX()
         horizontalScrollView.smoothScrollTo(
-            scala.math.round(scrollX / displayWidth.toDouble + 0.75).toInt * displayWidth, 0
+            scala.math.floor(scrollX / displayWidth.toDouble + 1.0).toInt * displayWidth, 0
         )
     }
 
@@ -199,7 +199,7 @@ class PicTumblrActivity extends Activity {
 
         val scrollX = horizontalScrollView.getScrollX()
         horizontalScrollView.smoothScrollTo(
-            scala.math.round(scrollX / displayWidth.toDouble - 0.75).toInt * displayWidth, 0
+            scala.math.floor(scrollX / displayWidth.toDouble - 1.0).toInt * displayWidth, 0
         )
     }
 
