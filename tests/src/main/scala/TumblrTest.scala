@@ -1,11 +1,11 @@
 package net.tokyoenvious.droid.pictumblr.tests
 
-import _root_.android.test.AndroidTestCase
+import android.test.AndroidTestCase
 import org.scalatest.junit.ShouldMatchersForJUnit
 
 import net.tokyoenvious.droid.pictumblr.Tumblr
 
-class TumblrTests extends AndroidTestCase with ShouldMatchersForJUnit {
+class TumblrTest extends AndroidTestCase with ShouldMatchersForJUnit {
 
     def testPackageIsCorrect {
         getContext.getPackageName should be ("net.tokyoenvious.droid.pictumblr")

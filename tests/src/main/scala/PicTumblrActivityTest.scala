@@ -1,86 +1,88 @@
 package net.tokyoenvious.droid.pictumblr.tests
 
 import android.test.ActivityInstrumentationTestCase2
-import junit.framework.Assert._
+import android.content.Intent
+import org.scalatest.junit.ShouldMatchersForJUnit
+
 import net.tokyoenvious.droid.pictumblr.PicTumblrActivity
 
 class PicTumblrActivityTest
     extends ActivityInstrumentationTestCase2[PicTumblrActivity]("net.tokyoenvious.droid.pictumblr", classOf[PicTumblrActivity])
-    {
+    with ShouldMatchersForJUnit  {
 
-    // なんか毎回 onCreate が走っている気がする……
+    // なんか毎回 onCreate が走っている気がする…… → そういうものです
     lazy val activity = getActivity()
 
-    lazy val prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(activity)
-    lazy val originalEmail    = prefs.getString("email", "")
-    lazy val originalPassword = prefs.getString("password", "")
+    lazy val preferences = android.preference.PreferenceManager.getDefaultSharedPreferences(activity)
+    lazy val originalEmail    = preferences.getString("email", "")
+    lazy val originalPassword = preferences.getString("password", "")
 
     override def setUp () {
+        super.setUp
+
+        val intent = new Intent(Intent.ACTION_MAIN)
+        intent.putExtra("net.tokyoenvious.droid.pictumblr.tests.noLoadOnCreate", true)
+
+        setActivityIntent(intent)
+
         originalEmail
         originalPassword
     }
 
     override def tearDown () {
-        val editor = prefs.edit
+        val editor = preferences.edit
         editor.putString("email", originalEmail)
         editor.putString("password", originalPassword)
         editor.commit
-    }
 
-    def testTumblr {
-        val tumblrOption = activity.getTumblr()
-        assertTrue(tumblrOption isDefined)
-
-        val tumblr = tumblrOption.get
-        val result = tumblr.dashboard()
-        assertTrue(result isRight)
+        super.tearDown
     }
 
     def testTaskGroupCallback {
         var called = false
         val taskGroup = new activity.TaskGroup({ called = true })
 
-        assertFalse(called)
-        assertEquals(taskGroup.count, 0)
+        called should be (false)
+        taskGroup.count should be (0)
 
         taskGroup.begin()
-        assertFalse(called)
-        assertEquals(taskGroup.count, 1)
+        called should be (false)
+        taskGroup.count should be (1)
 
         taskGroup.begin()
-        assertFalse(called)
-        assertEquals(taskGroup.count, 2)
+        called should be (false)
+        taskGroup.count should be (2)
 
         taskGroup.end()
-        assertFalse(called)
-        assertEquals(taskGroup.count, 1)
+        called should be (false)
+        taskGroup.count should be (1)
 
         taskGroup.begin()
-        assertFalse(called)
-        assertEquals(taskGroup.count, 2)
+        called should be (false)
+        taskGroup.count should be (2)
 
         taskGroup.end()
-        assertFalse(called)
-        assertEquals(taskGroup.count, 1)
+        called should be (false)
+        taskGroup.count should be (1)
 
         taskGroup.end()
-        assertTrue(called)
-        assertEquals(taskGroup.count, 0)
+        called should be (true)
+        taskGroup.count should be (0)
     }
 
     def testTumblrAuthFailure {
-        val editor = prefs.edit
+        val editor = preferences.edit
         editor.putString("email", "bad email")
         editor.putString("password", "bad password")
         editor.commit
 
         val tumblrOption = activity.getTumblr()
-        assertTrue(tumblrOption isDefined)
+        tumblrOption.isDefined should be (true)
 
         val tumblr = tumblrOption.get
         val result = tumblr.dashboard()
 
-        assertTrue(result isLeft)
-        assertEquals("Invalid credentials.", result.left.get)
+        result.isLeft should be (true)
+        result.left.get should equal ("Invalid credentials.")
     }
 }

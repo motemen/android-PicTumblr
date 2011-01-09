@@ -34,6 +34,9 @@ class PicTumblrActivity extends Activity {
     lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
                 .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
 
+    lazy val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+    lazy val intent = getIntent
+
     // TODO 中途半端にスクロールしない
     lazy val gestureDetector = new GestureDetector(
         new GestureDetector.SimpleOnGestureListener() {
@@ -102,7 +105,10 @@ class PicTumblrActivity extends Activity {
             }
         )
 
-        goBackDashboard()
+        val noLoadOnCreate = intent.getBooleanExtra("net.tokyoenvious.droid.pictumblr.tests.noLoadOnCreate", false)
+        if (!noLoadOnCreate) {
+            goBackDashboard()
+        }
     }
 
     override def onCreateOptionsMenu (menu : Menu) : Boolean = {
@@ -257,9 +263,8 @@ class PicTumblrActivity extends Activity {
     }
 
     def getTumblr () : Option[Tumblr] = {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-        val email    = prefs.getString("email", "")
-        val password = prefs.getString("password", "")
+        val email    = preferences.getString("email", "")
+        val password = preferences.getString("password", "")
 
         if (email.length == 0 || password.length == 0) {
             startPreferenceActivity
