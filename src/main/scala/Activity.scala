@@ -15,7 +15,7 @@ import org.apache.http.entity.BufferedHttpEntity
 
 import scala.collection.mutable.Queue
 
-class PicTumblrActivity extends Activity {
+class PicTumblrActivity extends TypedActivity {
     val MENU_ITEM_ID_REFRESH = Menu.FIRST + 1
     val MENU_ITEM_ID_SETTING = Menu.FIRST + 2
 
@@ -26,9 +26,8 @@ class PicTumblrActivity extends Activity {
     val BACKWARD_OFFSET = 3
     val FORWARD_OFFSET  = 10
 
-    // TODO TypedResources
-    lazy val horizontalScrollView = findViewById(R.id.layout_scrollview).asInstanceOf[android.widget.HorizontalScrollView]
-    lazy val imagesContainer = findViewById(R.id.images_container).asInstanceOf[LinearLayout]
+    lazy val horizontalScrollView = findView(TR.layout_scrollview)
+    lazy val imagesContainer      = findView(TR.images_container)
 
     lazy val vibrator = getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[android.os.Vibrator]
     lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)

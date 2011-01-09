@@ -67,13 +67,22 @@ class PicTumblrProject (info: ProjectInfo) extends ParentProject(info) {
     lazy val main  = project(".",     "PicTumblr", new MainProject(_))
     lazy val tests = project("tests", "tests",     new TestProject(_), main)
 
-    class MainProject(info: ProjectInfo) extends AndroidProject(info) with Defaults with MarketPublish with AutoRestartAdbDaemon with SuppressAaptWarnings {
+    class MainProject(info: ProjectInfo) extends AndroidProject(info)
+            with Defaults with MarketPublish with TypedResources
+            with AutoRestartAdbDaemon with SuppressAaptWarnings
+    {
+        override def proguardOption = (
+            "-dontnote scala.Enumeration" ::
+            Nil
+        ) mkString(" ")
+
         val keyalias  = "change-me"
-        // val scalatest = "org.scalatest" % "scalatest" % "1.0" % "test"
         val commonsLang = "commons-lang" % "commons-lang" % "2.5"
     }
 
-    class TestProject(info: ProjectInfo) extends AndroidTestProject(info) with Defaults with AutoRestartAdbDaemon with SuppressAaptWarnings {
+    class TestProject(info: ProjectInfo) extends AndroidTestProject(info)
+            with Defaults with AutoRestartAdbDaemon with SuppressAaptWarnings
+    {
         override def proguardInJars = runClasspath --- proguardExclude
         override def proguardOption = (
             "-dontnote scala.Enumeration" ::
