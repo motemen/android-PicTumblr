@@ -96,8 +96,8 @@ class PicTumblrActivity extends TypedActivity {
                 override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) {
                     Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
 
-                    // XXX スクロール時におこなう
-                    PicTumblrActivity.this.purgeOldAndLoadNewPosts
+                    // XXX ここでやるとずれたとき変になる
+                    // PicTumblrActivity.this.purgeOldAndLoadNewPosts
 
                     val newX = if (dx > 0) {
                         (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
@@ -105,6 +105,21 @@ class PicTumblrActivity extends TypedActivity {
                         (scala.math.ceil (startX / displayWidth.toDouble) - 1) * displayWidth
                     }
                     super.startScroll(startX, startY, newX.toInt - startX, dy)
+                }
+
+                override def computeScrollOffset () : Boolean = {
+                    val notFinished = super.computeScrollOffset
+                    // XXX ちょっと重かったりしないか？
+                    if (notFinished == false) {
+                        horizontalScrollView.post(
+                            new java.lang.Thread() {
+                                override def run() {
+                                    PicTumblrActivity.this.purgeOldAndLoadNewPosts
+                                }
+                            }
+                        )
+                    }
+                    return notFinished
                 }
             }
         )
