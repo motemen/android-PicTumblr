@@ -87,6 +87,28 @@ class PicTumblrActivity extends TypedActivity {
         horizontalScrollView.setOnCreateContextMenuListener(this)
         horizontalScrollView.setHorizontalScrollBarEnabled(false)
 
+        // XXX
+        val scrollerField = horizontalScrollView.getClass.getDeclaredField("mScroller")
+        scrollerField.setAccessible(true)
+        scrollerField.set(
+            horizontalScrollView,
+            new android.widget.Scroller(this) {
+                override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) {
+                    Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
+
+                    // XXX スクロール時におこなう
+                    PicTumblrActivity.this.purgeOldAndLoadNewPosts
+
+                    val newX = if (dx > 0) {
+                        (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
+                    } else {
+                        (scala.math.ceil (startX / displayWidth.toDouble) - 1) * displayWidth
+                    }
+                    super.startScroll(startX, startY, newX.toInt - startX, dy)
+                }
+            }
+        )
+
         gestureDetector.setIsLongpressEnabled(true)
 
         horizontalScrollView.setOnTouchListener(
@@ -191,7 +213,7 @@ class PicTumblrActivity extends TypedActivity {
     }
 
     def toNextPost () {
-        purgeOldAndLoadNewPosts()
+        // purgeOldAndLoadNewPosts()
 
         val scrollX = horizontalScrollView.getScrollX()
         horizontalScrollView.smoothScrollTo(
@@ -200,7 +222,7 @@ class PicTumblrActivity extends TypedActivity {
     }
 
     def toPreviousPost () {
-        purgeOldAndLoadNewPosts()
+        // purgeOldAndLoadNewPosts()
 
         val scrollX = horizontalScrollView.getScrollX()
         horizontalScrollView.smoothScrollTo(
