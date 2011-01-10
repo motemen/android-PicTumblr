@@ -22,6 +22,7 @@ class PicTumblrActivity extends TypedActivity {
     val CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR     = Menu.FIRST + 3
     val CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK = Menu.FIRST + 4
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
+    val CONTEXT_MENU_ID_ITEM_LIKE            = Menu.FIRST + 6
 
     val BACKWARD_OFFSET = 3
     val FORWARD_OFFSET  = 10
@@ -177,6 +178,7 @@ class PicTumblrActivity extends TypedActivity {
             val itemOpenTumblr    = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR,     Menu.NONE, "Open Tumblr Page")
             val itemOpenPhotoLink = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK, Menu.NONE, "Open Photo Link")
             val itemReblog        = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG,          Menu.NONE, "Reblog")
+            val itemLike          = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_LIKE,            Menu.NONE, "Like")
 
             super.onCreateContextMenu(menu, v, menuInfo)
         }
@@ -187,6 +189,7 @@ class PicTumblrActivity extends TypedActivity {
             case CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR     => openTumblr
             case CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK => openPhotoLink
             case CONTEXT_MENU_ID_ITEM_REBLOG          => doReblogPost
+            case CONTEXT_MENU_ID_ITEM_LIKE            => doLikePost
         }
 
         return true
@@ -309,6 +312,25 @@ class PicTumblrActivity extends TypedActivity {
             val task = new ReblogPostTask(
                 tumblr,
                 { globalTasks.end(); toast("Reblogged.") }
+            )
+            task.execute(post)
+        }
+    }
+
+    def doLikePost () {
+        for (
+            post <- currentPost;
+            tumblr <- getTumblr
+        ) {
+            Log.d("PicTumblrActivity", "doLikePost: " + post)
+
+            // TODO なんかもっと見目よく、何リブログしてるか分かるように
+            globalTasks.begin()
+            toast("Liking...")
+
+            val task = new LikePostTask(
+                tumblr,
+                { globalTasks.end(); toast("Liked.") }
             )
             task.execute(post)
         }
@@ -506,6 +528,18 @@ class ReblogPostTask (tumblr : Tumblr, callback : => Unit)
 
     override def doInBackground (post : Tumblr#PhotoPost) : Unit = {
         tumblr.reblog(post)
+    }
+
+    override def onPostExecute (u : Unit) {
+        callback
+    }
+}
+
+class LikePostTask (tumblr : Tumblr, callback : => Unit)
+        extends AsyncTask1[Tumblr#PhotoPost, java.lang.Void, Unit] {
+
+    override def doInBackground (post : Tumblr#PhotoPost) : Unit = {
+        tumblr.like(post)
     }
 
     override def onPostExecute (u : Unit) {

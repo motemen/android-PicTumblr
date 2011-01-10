@@ -54,19 +54,23 @@ class Tumblr (email : String, password : String) {
         }
     }
 
-    // XXX no comment, neither as
+    // XXX no 'comment', neither 'as'
     def reblog (post : Tumblr#PhotoPost) {
         makeRawApiRequest("reblog", "post-id" -> post.id.toString(), "reblog-key" -> post.reblogKey)
+    }
+
+    def like (post : Tumblr#PhotoPost) {
+        makeRawApiRequest("like", "post-id" -> post.id.toString(), "reblog-key" -> post.reblogKey)
     }
 
     private def getPhotoUrlNodeMaxWidth (node : scala.xml.Node) : Int =
         ( node \ "@max-width" ).headOption map { _.text.toInt } filter { _ < maxWidth } getOrElse(0)
 
-    private def makeApiRequest (function : String, params : (String, String)*) : MaybeError[scala.xml.Elem] = {
+    def makeApiRequest (function : String, params : (String, String)*) : MaybeError[scala.xml.Elem] = {
         makeRawApiRequest(function, params : _*).right map { XML.load(_) }
     }
 
-    private def makeRawApiRequest (function : String, params : (String, String)*) : MaybeError[java.io.InputStream]
+    def makeRawApiRequest (function : String, params : (String, String)*) : MaybeError[java.io.InputStream]
         = Exception.allCatch.either {
             Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)
 
