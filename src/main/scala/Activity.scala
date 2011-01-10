@@ -4,7 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
-import android.view.{ View, ViewGroup, Menu, MenuItem, ContextMenu, GestureDetector, MotionEvent }
+import android.view.{ View, ViewGroup, Menu, MenuItem, ContextMenu, GestureDetector, MotionEvent, KeyEvent }
 import android.graphics.{ Bitmap, BitmapFactory }
 import android.widget.{ Toast, ImageView, ProgressBar, LinearLayout, RelativeLayout }
 import android.content.{ Intent, Context }
@@ -175,6 +175,22 @@ class PicTumblrActivity extends TypedActivity {
         }
 
         return true
+    }
+
+    override def onKeyDown (keyCode : Int, event : KeyEvent) : Boolean = {
+        keyCode match {
+            case KeyEvent.KEYCODE_VOLUME_DOWN => {
+                toNextPost
+                return true
+            }
+            case KeyEvent.KEYCODE_VOLUME_UP => {
+                toPreviousPost
+                return true
+            }
+            case _ => {
+                return false
+            }
+        }
     }
 
     def purgeOldAndLoadNewPosts () {
