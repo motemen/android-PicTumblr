@@ -22,7 +22,7 @@ package sbt {
 import sbt.ProcessBuilderExtra._
 
 trait Defaults {
-    def androidPlatformName = "android-7"
+    def androidPlatformName = "android-8"
 }
 
 trait AutoRestartAdbDaemon extends AndroidProject {
