@@ -7,5 +7,6 @@ project/plugins/target/
 target/
 tests/target/
 lib_managed/
+src_managed/
 R.java
 .codefellow

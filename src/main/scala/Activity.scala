@@ -4,7 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
-import android.view.{ View, ViewGroup, Menu, MenuItem, ContextMenu, GestureDetector, MotionEvent, KeyEvent }
+import android.view.{ Window, WindowManager, View, ViewGroup, Menu, MenuItem, ContextMenu, GestureDetector, MotionEvent, KeyEvent }
 import android.graphics.{ Bitmap, BitmapFactory }
 import android.widget.{ Toast, ImageView, ProgressBar, LinearLayout, RelativeLayout }
 import android.content.{ Intent, Context }
@@ -32,7 +32,7 @@ class PicTumblrActivity extends TypedActivity {
 
     lazy val vibrator = getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[android.os.Vibrator]
     lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
-                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
+                .asInstanceOf[WindowManager].getDefaultDisplay().getWidth
 
     lazy val preferences = PreferenceManager.getDefaultSharedPreferences(this)
     lazy val intent = getIntent
@@ -82,7 +82,10 @@ class PicTumblrActivity extends TypedActivity {
     override def onCreate (savedInstanceState : Bundle) {
         super.onCreate(savedInstanceState)
 
-        requestWindowFeature(android.view.Window.FEATURE_INDETERMINATE_PROGRESS)
+        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS)
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+
         setContentView(R.layout.main)
 
         horizontalScrollView.setOnCreateContextMenuListener(this)
@@ -459,7 +462,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
 
                     val context = imagesContainer.getContext()
                     val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
-                            .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth
+                            .asInstanceOf[WindowManager].getDefaultDisplay().getWidth
                     val layout = new RelativeLayout(context)
                     layout.setGravity(android.view.Gravity.CENTER)
                     imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
