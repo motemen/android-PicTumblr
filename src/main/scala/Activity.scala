@@ -152,8 +152,8 @@ class PicTumblrActivity extends TypedActivity {
     }
 
     override def onCreateOptionsMenu (menu : Menu) : Boolean = {
-        // val itemRefresh = menu.add(Menu.NONE, MENU_ITEM_ID_REFRESH, Menu.NONE, "Refresh")
-        // itemRefresh.setIcon(R.drawable.ic_menu_refresh)
+        val itemRefresh = menu.add(Menu.NONE, MENU_ITEM_ID_REFRESH, Menu.NONE, "Refresh")
+        itemRefresh.setIcon(R.drawable.ic_menu_refresh)
 
         val itemSetting = menu.add(Menu.NONE, MENU_ITEM_ID_SETTING, Menu.NONE, "Setting")
         itemSetting.setIcon(android.R.drawable.ic_menu_preferences)
@@ -163,7 +163,10 @@ class PicTumblrActivity extends TypedActivity {
 
     override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
-            case MENU_ITEM_ID_REFRESH => goBackDashboard
+            case MENU_ITEM_ID_REFRESH => {
+                page = 0
+                goBackDashboard
+            }
             case MENU_ITEM_ID_SETTING => startPreferenceActivity
         }
 
@@ -276,11 +279,13 @@ class PicTumblrActivity extends TypedActivity {
         startActivityForResult(intent, 0)
     }
 
+    /*
     override def onActivityResult (requestCode : Int, resultCode : Int, intent : Intent) {
         // 今のところ設定変更のみ
         page = 0
         goBackDashboard
     }
+    */
 
     def openTumblr () {
         for (
@@ -344,7 +349,7 @@ class PicTumblrActivity extends TypedActivity {
         val password = preferences.getString("password", "")
 
         if (email.length == 0 || password.length == 0) {
-            startPreferenceActivity
+            toast("Press menu and enter your Tumblr account.")
             return None
         } else {
             return Some(new Tumblr(email, password))
