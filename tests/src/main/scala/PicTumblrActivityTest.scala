@@ -5,6 +5,7 @@ import android.content.Intent
 import org.scalatest.junit.ShouldMatchersForJUnit
 
 import net.tokyoenvious.droid.pictumblr.PicTumblrActivity
+import net.tokyoenvious.droid.pictumblr.LoadPhotoTask
 
 class PicTumblrActivityTest
     extends ActivityInstrumentationTestCase2[PicTumblrActivity]("net.tokyoenvious.droid.pictumblr", classOf[PicTumblrActivity])
@@ -84,5 +85,19 @@ class PicTumblrActivityTest
 
         result.isLeft should be (true)
         result.left.get should equal ("Invalid credentials.")
+    }
+
+    def testLoadPhotoTaskFailure {
+        val tumblr = activity.getTumblr.get
+        val layout = new android.widget.RelativeLayout(activity)
+        val task = new LoadPhotoTask(layout, {})
+        val post = new tumblr.PhotoPost(
+            123, "reblog-key", "http://localhost/", "http://...invalid.../photo-url", None, ""
+        )
+
+        task.execute(post)
+        task.get
+
+        assert(None) // no exception here
     }
 }

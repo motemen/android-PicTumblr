@@ -531,22 +531,27 @@ class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
         )
         */
 
-        var httpClient   = new DefaultHttpClient
-        val httpGet      = new HttpGet(photoPost.photoUrl)
-        val httpResponse = httpClient.execute(httpGet)
-
-        // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
-        val options = new BitmapFactory.Options
-        options.inPreferredConfig = Bitmap.Config.RGB_565
-
         try {
+            val httpClient   = new DefaultHttpClient
+            val httpGet      = new HttpGet(photoPost.photoUrl)
+            val httpResponse = httpClient.execute(httpGet)
+
+            // 単純に Drawable.createFromStream() するとメモリを食うので Bitmap.Config.RGB_565 を指定
+            val options = new BitmapFactory.Options
+            options.inPreferredConfig = Bitmap.Config.RGB_565
+
             val bitmap = BitmapFactory.decodeStream(
                 new BufferedHttpEntity(httpResponse.getEntity).getContent(), null, options
             )
             Log.d("LoadPhotoTask", "doInBackground: loaded " + photoPost.photoUrl)
+
             return bitmap
         } catch {
-            case _ => return null
+            // TODO 何かしら表示する
+            case e => {
+                e.printStackTrace
+                return null
+            }
         }
     }
 

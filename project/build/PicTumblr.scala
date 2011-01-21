@@ -26,8 +26,9 @@ trait Defaults {
 }
 
 // XXX これでいいのかよ
+// TODO あとで整える……
 trait FixToolsPathLv9 extends AndroidProject {
-    override def aaptPath = androidToolsPath / aaptName
+    override def aaptPath = androidSdkPath / "platform-tools" / aaptName
     override def aidlPath = androidToolsPath / aidlName
     override def dxPath   = androidSdkPath / "platform-tools" / dxName
 }
