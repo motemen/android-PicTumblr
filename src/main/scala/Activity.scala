@@ -37,7 +37,6 @@ class PicTumblrActivity extends TypedActivity {
     lazy val preferences = PreferenceManager.getDefaultSharedPreferences(this)
     lazy val intent = getIntent
 
-    // TODO 中途半端にスクロールしない
     lazy val gestureDetector = new GestureDetector(
         new GestureDetector.SimpleOnGestureListener() {
             override def onFling (e1 : MotionEvent, e2 : MotionEvent, vx : Float, vy : Float) : Boolean = {
@@ -79,6 +78,72 @@ class PicTumblrActivity extends TypedActivity {
     var dashboardLoading = false
     var index : Int = 0
 
+    private def makeSteppedScroller () = {
+        new android.widget.Scroller(this) {
+            override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) {
+                Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
+
+                // XXX ここでやるとずれたとき変になる
+                // PicTumblrActivity.this.purgeOldAndLoadNewPosts
+
+                val newX = if (dx > 0) {
+                    (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
+                } else {
+                    (scala.math.ceil (startX / displayWidth.toDouble) - 1) * displayWidth
+                }
+                super.startScroll(startX, startY, newX.toInt - startX, dy)
+            }
+
+            override def computeScrollOffset () : Boolean = {
+                val notFinished = super.computeScrollOffset
+                // XXX ちょっと重かったりしないか？
+                if (notFinished == false) {
+                    horizontalScrollView.post(
+                        new java.lang.Thread() {
+                            override def run() {
+                                PicTumblrActivity.this.purgeOldAndLoadNewPosts
+                            }
+                        }
+                    )
+                }
+                return notFinished
+            }
+        }
+    }
+
+    private def makeSteppedOverScroller () = {
+        new android.widget.OverScroller(this) {
+            override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) {
+                Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
+
+                // XXX ここでやるとずれたとき変になる
+                // PicTumblrActivity.this.purgeOldAndLoadNewPosts
+
+                val newX = if (dx > 0) {
+                    (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
+                } else {
+                    (scala.math.ceil (startX / displayWidth.toDouble) - 1) * displayWidth
+                }
+                super.startScroll(startX, startY, newX.toInt - startX, dy)
+            }
+
+            override def computeScrollOffset () : Boolean = {
+                val notFinished = super.computeScrollOffset
+                // XXX ちょっと重かったりしないか？
+                if (notFinished == false) {
+                    horizontalScrollView.post(
+                        new java.lang.Thread() {
+                            override def run() {
+                                PicTumblrActivity.this.purgeOldAndLoadNewPosts
+                            }
+                        }
+                    )
+                }
+                return notFinished
+            }
+        }
+    }
+
     override def onCreate (savedInstanceState : Bundle) {
         super.onCreate(savedInstanceState)
 
@@ -91,42 +156,15 @@ class PicTumblrActivity extends TypedActivity {
         horizontalScrollView.setOnCreateContextMenuListener(this)
         horizontalScrollView.setHorizontalScrollBarEnabled(false)
 
-        // XXX
+        // XXX using reflection
         val scrollerField = horizontalScrollView.getClass.getDeclaredField("mScroller")
         scrollerField.setAccessible(true)
-        scrollerField.set(
-            horizontalScrollView,
-            new android.widget.Scroller(this) {
-                override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) {
-                    Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
-
-                    // XXX ここでやるとずれたとき変になる
-                    // PicTumblrActivity.this.purgeOldAndLoadNewPosts
-
-                    val newX = if (dx > 0) {
-                        (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
-                    } else {
-                        (scala.math.ceil (startX / displayWidth.toDouble) - 1) * displayWidth
-                    }
-                    super.startScroll(startX, startY, newX.toInt - startX, dy)
-                }
-
-                override def computeScrollOffset () : Boolean = {
-                    val notFinished = super.computeScrollOffset
-                    // XXX ちょっと重かったりしないか？
-                    if (notFinished == false) {
-                        horizontalScrollView.post(
-                            new java.lang.Thread() {
-                                override def run() {
-                                    PicTumblrActivity.this.purgeOldAndLoadNewPosts
-                                }
-                            }
-                        )
-                    }
-                    return notFinished
-                }
-            }
-        )
+        if (scrollerField.getType.getName == "android.widget.Scroller") {
+            scrollerField.set(horizontalScrollView, makeSteppedScroller)
+        } else {
+            // API lv >= 9
+            scrollerField.set(horizontalScrollView, makeSteppedOverScroller)
+        }
 
         gestureDetector.setIsLongpressEnabled(true)
 

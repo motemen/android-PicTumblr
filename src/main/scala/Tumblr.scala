@@ -85,7 +85,6 @@ class Tumblr (email : String, password : String) {
             val statusLine   = httpResponse.getStatusLine
             Log.d("Tumblr#makeRawApiRequest", "Status: " + statusLine)
 
-            // TODO error on non-2xx
             val statusCode = statusLine.getStatusCode
             val in = new BufferedHttpEntity(httpResponse.getEntity).getContent
             if (200 <= statusCode && statusCode <= 299) {

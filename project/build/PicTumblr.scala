@@ -22,7 +22,14 @@ package sbt {
 import sbt.ProcessBuilderExtra._
 
 trait Defaults {
-    def androidPlatformName = "android-8"
+    def androidPlatformName = "android-9"
+}
+
+// XXX これでいいのかよ
+trait FixToolsPathLv9 extends AndroidProject {
+    override def aaptPath = androidToolsPath / aaptName
+    override def aidlPath = androidToolsPath / aidlName
+    override def dxPath   = androidSdkPath / "platform-tools" / dxName
 }
 
 trait AutoRestartAdbDaemon extends AndroidProject {
@@ -69,7 +76,7 @@ class PicTumblrProject (info: ProjectInfo) extends ParentProject(info) {
 
     class MainProject(info: ProjectInfo) extends AndroidProject(info)
             with Defaults with MarketPublish with TypedResources
-            with AutoRestartAdbDaemon with SuppressAaptWarnings
+            with AutoRestartAdbDaemon with SuppressAaptWarnings with FixToolsPathLv9
     {
         override def proguardOption = (
             "-dontnote scala.Enumeration" ::
@@ -81,7 +88,7 @@ class PicTumblrProject (info: ProjectInfo) extends ParentProject(info) {
     }
 
     class TestProject(info: ProjectInfo) extends AndroidTestProject(info)
-            with Defaults with AutoRestartAdbDaemon with SuppressAaptWarnings
+            with Defaults with AutoRestartAdbDaemon with SuppressAaptWarnings with FixToolsPathLv9
     {
         override def proguardInJars = runClasspath --- proguardExclude
         override def proguardOption = (
