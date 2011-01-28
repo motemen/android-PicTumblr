@@ -428,13 +428,12 @@ class PicTumblrActivity extends TypedActivity {
 
                     globalTasks.begin()
                     val task = new LoadDashboardTask(
-                        tumblr, page + 1, imagesContainer, posts,
+                        tumblr, page + 1,
                         new TaskGroup({
                             Log.d("PicTumblrActivity", "LoadDashboardTask callback")
                             dashboardLoading = false
                             globalTasks.end()
-                        }),
-                        { this.toast(_) }
+                        })
                     )
                     task.execute()
 
@@ -482,56 +481,61 @@ class PicTumblrActivity extends TypedActivity {
             }
         }
     }
-}
 
-// AsyncTask[Int, ...] だと落ちる → java.lang.Integer に
-// FIXME no toast here
-class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLayout, posts : Queue[Tumblr#PhotoPost], tasks : PicTumblrActivity#TaskGroup, toast : String => Unit)
-        extends AsyncTask0[java.lang.Void, Tumblr#MaybeError[Seq[Tumblr#PhotoPost]]] {
+    class LoadDashboardTask (tumblr : Tumblr, page : Int, tasks : PicTumblrActivity#TaskGroup)
+            extends AsyncTask0[java.lang.Void, Tumblr#MaybeError[Seq[Tumblr#PhotoPost]]] {
 
-    val perPage = 20 // TODO make configurable
+        val perPage = 20 // TODO make configurable
 
-    override def onPreExecute () {
-        toast("Loading dashboard " + ((page - 1) * perPage + 1) + "-" + (page * perPage))
-    }
+        val imagesContainer = PicTumblrActivity.this.imagesContainer
+        val posts = PicTumblrActivity.this.posts
 
-    // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
-    override def doInBackground () : Tumblr#MaybeError[Seq[Tumblr#PhotoPost]] = {
-        Log.d("LoadDashboardTask", "doInBackground")
+        def toast (message : String) = PicTumblrActivity.this.toast(message)
 
-        return tumblr.dashboard("start" -> ((page - 1) * perPage).toString, "num" -> perPage.toString)
-    }
+        override def onPreExecute () {
+            toast("Loading dashboard " + ((page - 1) * perPage + 1) + "-" + (page * perPage))
+        }
 
-    override def onPostExecute (result : Tumblr#MaybeError[Seq[Tumblr#PhotoPost]]) {
-        result match {
-            case Left(error) => {
-                toast("error: " + error)
-                tasks.begin()
-                tasks.end()
-            }
+        // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
+        override def doInBackground () : Tumblr#MaybeError[Seq[Tumblr#PhotoPost]] = {
+            Log.d("LoadDashboardTask", "doInBackground")
 
-            case Right(loadedPosts) => {
-                toast("Dashboard loaded.")
+            return tumblr.dashboard("start" -> ((page - 1) * perPage).toString, "num" -> perPage.toString)
+        }
 
-                // post match { case Tumblr#PhotoPost(url) => ... } できない件は
-                // post match { case tumblr.PhotoPost(url) => ... } でいける
-                // ref. http://stackoverflow.com/questions/1812695/scala-case-class-matching-compile-error-with-aliased-inner-types
-                for (post <- loadedPosts) {
-                    Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
-
-                    posts += post
-
-                    val context = imagesContainer.getContext()
-                    val displayWidth = context.getSystemService(Context.WINDOW_SERVICE)
-                            .asInstanceOf[WindowManager].getDefaultDisplay().getWidth
-                    val layout = new RelativeLayout(context)
-                    layout.setGravity(android.view.Gravity.CENTER)
-
-                    imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
-
+        override def onPostExecute (result : Tumblr#MaybeError[Seq[Tumblr#PhotoPost]]) {
+            result match {
+                case Left(error) => {
+                    toast("error: " + error)
                     tasks.begin()
-                    val task = new LoadPhotoTask(layout, { tasks.end() })
-                    task.execute(post)
+                    tasks.end()
+                }
+
+                case Right(loadedPosts) => {
+                    toast("Dashboard loaded.")
+
+                    for (post <- loadedPosts) {
+                        Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
+
+                        posts += post
+
+                        val layout = new RelativeLayout(imagesContainer.getContext())
+                        layout.setGravity(android.view.Gravity.CENTER)
+
+                        imagesContainer.addView(
+                            layout,
+                            new ViewGroup.LayoutParams(
+                                PicTumblrActivity.this.displayWidth,
+                                ViewGroup.LayoutParams.FILL_PARENT
+                            )
+                        )
+
+                        tasks.begin()
+                        val task = new LoadPhotoTask(layout, { tasks.end() })
+                        task.execute(post)
+                    }
+
+                    PicTumblrActivity.this.updateCaption
                 }
             }
         }
