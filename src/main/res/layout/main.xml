@@ -1,13 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-  android:layout_width="fill_parent"
-  android:layout_height="fill_parent"
-  android:id="@+id/layout_scrollview">
-
-  <LinearLayout
-    android:layout_width="wrap_content"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:id="@+id/images_container">
-  </LinearLayout>
+    android:id="@+id/layout_frame" android:gravity="center_horizontal|bottom">
 
-</HorizontalScrollView>
+    <HorizontalScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id="@+id/layout_scrollview">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="fill_parent"
+            android:id="@+id/images_container">
+        </LinearLayout>
+
+    </HorizontalScrollView>
+
+    <!-- TODO 設定可能に -->
+    <TextView
+        android:id="@+id/textview_caption"
+        android:background="#66000000"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="PICTUMBLR"
+        android:textSize="15sp"
+        android:padding="5sp"
+        >
+    </TextView>
+</FrameLayout>

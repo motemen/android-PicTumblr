@@ -29,6 +29,7 @@ class PicTumblrActivity extends TypedActivity {
 
     lazy val horizontalScrollView = findView(TR.layout_scrollview)
     lazy val imagesContainer      = findView(TR.images_container)
+    lazy val captionTextView      = findView(TR.textview_caption)
 
     lazy val vibrator = getSystemService(Context.VIBRATOR_SERVICE).asInstanceOf[android.os.Vibrator]
     lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
@@ -85,6 +86,8 @@ class PicTumblrActivity extends TypedActivity {
 
                 // XXX ここでやるとずれたとき変になる
                 // PicTumblrActivity.this.purgeOldAndLoadNewPosts
+                
+                // FIXME 連続してスクロールしてるとなんか変？
 
                 val newX = if (dx > 0) {
                     (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
@@ -97,11 +100,20 @@ class PicTumblrActivity extends TypedActivity {
             override def computeScrollOffset () : Boolean = {
                 val notFinished = super.computeScrollOffset
                 // XXX ちょっと重かったりしないか？
+                // FIXME notFinished が true にならないまま呼ばれ続けることがある
                 if (notFinished == false) {
                     horizontalScrollView.post(
                         new java.lang.Thread() {
                             override def run() {
-                                PicTumblrActivity.this.purgeOldAndLoadNewPosts
+                                val pictumblrActivity = PicTumblrActivity.this
+                                pictumblrActivity.purgeOldAndLoadNewPosts
+                                // TODO スクロール始まったタイミングで設定したい
+                                pictumblrActivity.captionTextView.setText(
+                                    pictumblrActivity.currentPost match {
+                                        case Some(post) => post.plainCaption
+                                        case None       => ""
+                                    }
+                                )
                             }
                         }
                     )
@@ -111,6 +123,7 @@ class PicTumblrActivity extends TypedActivity {
         }
     }
 
+    // XXX できれば上と実装を共通化したい…
     private def makeSteppedOverScroller () = {
         new android.widget.OverScroller(this) {
             override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) {
@@ -508,6 +521,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
                             .asInstanceOf[WindowManager].getDefaultDisplay().getWidth
                     val layout = new RelativeLayout(context)
                     layout.setGravity(android.view.Gravity.CENTER)
+
                     imagesContainer.addView(layout, new ViewGroup.LayoutParams(displayWidth, ViewGroup.LayoutParams.FILL_PARENT))
 
                     tasks.begin()
@@ -519,7 +533,7 @@ class LoadDashboardTask (tumblr : Tumblr, page : Int, imagesContainer : LinearLa
     }
 }
 
-class LoadPhotoTask (imageContainer : RelativeLayout, callback : => Unit)
+class LoadPhotoTask (imageContainer : ViewGroup, callback : => Unit)
         extends AsyncTask1[Tumblr#PhotoPost, java.lang.Void, Bitmap] {
 
     override def doInBackground (photoPost : Tumblr#PhotoPost) : Bitmap = {
