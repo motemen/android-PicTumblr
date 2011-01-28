@@ -97,27 +97,23 @@ class PicTumblrActivity extends TypedActivity {
                 super.startScroll(startX, startY, newX.toInt - startX, dy)
             }
 
+            var lastNotFinished = false
             override def computeScrollOffset () : Boolean = {
                 val notFinished = super.computeScrollOffset
                 // XXX ちょっと重かったりしないか？
-                // FIXME notFinished が true にならないまま呼ばれ続けることがある
-                if (notFinished == false) {
+                if (notFinished == false && lastNotFinished != notFinished) {
                     horizontalScrollView.post(
                         new java.lang.Thread() {
                             override def run() {
-                                val pictumblrActivity = PicTumblrActivity.this
-                                pictumblrActivity.purgeOldAndLoadNewPosts
+                                val activity = PicTumblrActivity.this
+                                activity.purgeOldAndLoadNewPosts
                                 // TODO スクロール始まったタイミングで設定したい
-                                pictumblrActivity.captionTextView.setText(
-                                    pictumblrActivity.currentPost match {
-                                        case Some(post) => post.plainCaption
-                                        case None       => ""
-                                    }
-                                )
+                                activity.updateCaption
                             }
                         }
                     )
                 }
+                lastNotFinished = notFinished
                 return notFinished
             }
         }
@@ -281,6 +277,15 @@ class PicTumblrActivity extends TypedActivity {
         if (currentIndex >= posts.size - FORWARD_OFFSET) {
             goBackDashboard()
         }
+    }
+
+    def updateCaption () {
+        captionTextView.setText(
+            currentPost match {
+                case Some(post) => post.plainCaption
+                case None       => ""
+            }
+        )
     }
 
     def currentIndex () : Int = {
