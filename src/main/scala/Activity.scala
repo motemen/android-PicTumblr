@@ -127,6 +127,8 @@ class PicTumblrActivity extends TypedActivity {
 
                 // XXX ここでやるとずれたとき変になる
                 // PicTumblrActivity.this.purgeOldAndLoadNewPosts
+                
+                // FIXME 連続してスクロールしてるとなんか変？
 
                 val newX = if (dx > 0) {
                     (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
@@ -136,18 +138,23 @@ class PicTumblrActivity extends TypedActivity {
                 super.startScroll(startX, startY, newX.toInt - startX, dy)
             }
 
+            var lastNotFinished = false
             override def computeScrollOffset () : Boolean = {
                 val notFinished = super.computeScrollOffset
                 // XXX ちょっと重かったりしないか？
-                if (notFinished == false) {
+                if (notFinished == false && lastNotFinished != notFinished) {
                     horizontalScrollView.post(
                         new java.lang.Thread() {
                             override def run() {
-                                PicTumblrActivity.this.purgeOldAndLoadNewPosts
+                                val activity = PicTumblrActivity.this
+                                activity.purgeOldAndLoadNewPosts
+                                // TODO スクロール始まったタイミングで設定したい
+                                activity.updateCaption
                             }
                         }
                     )
                 }
+                lastNotFinished = notFinished
                 return notFinished
             }
         }
@@ -334,14 +341,6 @@ class PicTumblrActivity extends TypedActivity {
         val intent = new Intent(this, classOf[PicTumblrPrefernceActivity])
         startActivityForResult(intent, 0)
     }
-
-    /*
-    override def onActivityResult (requestCode : Int, resultCode : Int, intent : Intent) {
-        // 今のところ設定変更のみ
-        page = 0
-        goBackDashboard
-    }
-    */
 
     def openTumblr () {
         for (
