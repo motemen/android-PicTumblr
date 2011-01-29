@@ -9,7 +9,6 @@ import android.widget
 import android.view.View
 import android.view.View.OnClickListener
 
-
 class PicTumblrPrefernceActivity extends PreferenceActivity
     with SharedPreferences.OnSharedPreferenceChangeListener {
 

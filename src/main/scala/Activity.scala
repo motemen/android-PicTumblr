@@ -24,6 +24,9 @@ class PicTumblrActivity extends TypedActivity {
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
     val CONTEXT_MENU_ID_ITEM_LIKE            = Menu.FIRST + 6
 
+    val ACTIVITY_REQUEST_CODE_DEFAULT        = 0
+    val ACTIVITY_REQUEST_CODE_FIRST_SETTING  = 1
+
     val BACKWARD_OFFSET = 3
     val FORWARD_OFFSET  = 10
 
@@ -207,14 +210,8 @@ class PicTumblrActivity extends TypedActivity {
 
     override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
-            case MENU_ITEM_ID_REFRESH => {
-                page = 0
-                captionTextView.setText(getText(R.string.default_caption))
-                posts.clear()
-                imagesContainer.removeAllViews()
-                goBackDashboard()
-            }
-            case MENU_ITEM_ID_SETTING => startPreferenceActivity
+            case MENU_ITEM_ID_REFRESH => clearAndGoBackDashboard()
+            case MENU_ITEM_ID_SETTING => startPreferenceActivity()
         }
 
         return true
@@ -330,9 +327,15 @@ class PicTumblrActivity extends TypedActivity {
         return posts.get(currentIndex)
     }
 
-    def startPreferenceActivity () {
+    def startPreferenceActivity (requestCode : Int = ACTIVITY_REQUEST_CODE_DEFAULT) {
         val intent = new Intent(this, classOf[PicTumblrPrefernceActivity])
-        startActivityForResult(intent, 0)
+        startActivityForResult(intent, requestCode)
+    }
+
+    override def onActivityResult (requestCode : Int, resultCode : Int, intent : Intent) {
+        if (requestCode == ACTIVITY_REQUEST_CODE_FIRST_SETTING) {
+            clearAndGoBackDashboard
+        }
     }
 
     def openTumblr () {
@@ -397,7 +400,16 @@ class PicTumblrActivity extends TypedActivity {
         val password = preferences.getString("password", "")
 
         if (email.length == 0 || password.length == 0) {
-            toast("Press menu and enter your Tumblr account.")
+            // toast("Press menu and enter your Tumblr account.")
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Tumblr account not configured")
+                .setMessage("Go setting to enter your tumblr account")
+                .setPositiveButton("OK", new android.content.DialogInterface.OnClickListener () {
+                    def onClick (diaglog : android.content.DialogInterface, which : Int) {
+                        startPreferenceActivity(ACTIVITY_REQUEST_CODE_FIRST_SETTING)
+                    }
+                })
+                .show()
             return None
         } else {
             return Some(new Tumblr(email, password))
@@ -441,6 +453,14 @@ class PicTumblrActivity extends TypedActivity {
                 }
             }
         }
+    }
+
+    def clearAndGoBackDashboard () {
+        page = 0
+        captionTextView.setText(getText(R.string.default_caption))
+        posts.clear()
+        imagesContainer.removeAllViews()
+        goBackDashboard()
     }
 
     var currentToast : Toast = null
