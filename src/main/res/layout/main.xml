@@ -23,7 +23,7 @@
         android:background="#66000000"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:text="PICTUMBLR"
+        android:text="PICTUMBLR 0.1.1"
         android:textSize="15sp"
         android:padding="5sp"
         >
