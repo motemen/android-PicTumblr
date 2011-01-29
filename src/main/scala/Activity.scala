@@ -79,86 +79,66 @@ class PicTumblrActivity extends TypedActivity {
     var dashboardLoading = false
     var index : Int = 0
 
-    private def makeSteppedScroller () = {
-        new android.widget.Scroller(this) {
-            override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) {
-                Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
+    private type ScrollerLike = {
+        def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) : Unit
+        def computeScrollOffset () : Boolean
+    }
 
-                // XXX ここでやるとずれたとき変になる
-                // PicTumblrActivity.this.purgeOldAndLoadNewPosts
-                
-                // FIXME 連続してスクロールしてるとなんか変？
+    private trait SteppedScroller {
+        self : ScrollerLike =>
 
-                val newX = if (dx > 0) {
-                    (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
-                } else {
-                    (scala.math.ceil (startX / displayWidth.toDouble) - 1) * displayWidth
-                }
-                super.startScroll(startX, startY, newX.toInt - startX, dy)
+        def _startScroll (startX : Int, startY : Int, dx : Int, dy : Int, _super : (Int, Int, Int, Int) => Unit) : Unit = {
+            Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
+
+            // XXX ここでやるとずれたとき変になる
+            // PicTumblrActivity.this.purgeOldAndLoadNewPosts
+            
+            // FIXME 連続してスクロールしてるとなんか変？
+
+            val newX = if (dx > 0) {
+                (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
+            } else {
+                (scala.math.ceil (startX / displayWidth.toDouble) - 1) * displayWidth
             }
+            _super(startX, startY, newX.toInt - startX, dy)
+        }
 
-            var lastNotFinished = false
-            override def computeScrollOffset () : Boolean = {
-                val notFinished = super.computeScrollOffset
-                // XXX ちょっと重かったりしないか？
-                if (notFinished == false && lastNotFinished != notFinished) {
-                    horizontalScrollView.post(
-                        new java.lang.Thread() {
-                            override def run() {
-                                val activity = PicTumblrActivity.this
-                                activity.purgeOldAndLoadNewPosts
-                                // TODO スクロール始まったタイミングで設定したい
-                                activity.updateCaption
-                            }
+        var lastNotFinished : Boolean = false
+        def _computeScrollOffset (_super : () => Boolean) : Boolean = {
+            val notFinished = _super()
+            // XXX ちょっと重かったりしないか？
+            if (notFinished == false && lastNotFinished != notFinished) {
+                horizontalScrollView.post(
+                    new java.lang.Thread() {
+                        override def run() {
+                            val activity = PicTumblrActivity.this
+                            activity.purgeOldAndLoadNewPosts
+                            // TODO スクロール始まったタイミングで設定したい
+                            activity.updateCaption
                         }
-                    )
-                }
-                lastNotFinished = notFinished
-                return notFinished
+                    }
+                )
             }
+            lastNotFinished = notFinished
+            return notFinished
         }
     }
 
-    // XXX できれば上と実装を共通化したい…
-    private def makeSteppedOverScroller () = {
-        new android.widget.OverScroller(this) {
-            override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int) {
-                Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
-
-                // XXX ここでやるとずれたとき変になる
-                // PicTumblrActivity.this.purgeOldAndLoadNewPosts
-                
-                // FIXME 連続してスクロールしてるとなんか変？
-
-                val newX = if (dx > 0) {
-                    (scala.math.floor(startX / displayWidth.toDouble) + 1) * displayWidth
-                } else {
-                    (scala.math.ceil (startX / displayWidth.toDouble) - 1) * displayWidth
-                }
-                super.startScroll(startX, startY, newX.toInt - startX, dy)
-            }
-
-            var lastNotFinished = false
-            override def computeScrollOffset () : Boolean = {
-                val notFinished = super.computeScrollOffset
-                // XXX ちょっと重かったりしないか？
-                if (notFinished == false && lastNotFinished != notFinished) {
-                    horizontalScrollView.post(
-                        new java.lang.Thread() {
-                            override def run() {
-                                val activity = PicTumblrActivity.this
-                                activity.purgeOldAndLoadNewPosts
-                                // TODO スクロール始まったタイミングで設定したい
-                                activity.updateCaption
-                            }
-                        }
-                    )
-                }
-                lastNotFinished = notFinished
-                return notFinished
-            }
+    private def makeSteppedScroller ()
+        = new android.widget.Scroller(this) with SteppedScroller {
+            override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int)
+                = _startScroll(startX, startY, dx, dy, super.startScroll)
+            override def computeScrollOffset ()
+                = _computeScrollOffset(super.computeScrollOffset)
         }
-    }
+
+    private def makeSteppedOverScroller ()
+        = new android.widget.OverScroller(this) with SteppedScroller {
+            override def startScroll (startX : Int, startY : Int, dx : Int, dy : Int)
+                = _startScroll(startX, startY, dx, dy, super.startScroll)
+            override def computeScrollOffset ()
+                = _computeScrollOffset(super.computeScrollOffset)
+        }
 
     override def onCreate (savedInstanceState : Bundle) {
         super.onCreate(savedInstanceState)
