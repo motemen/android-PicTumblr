@@ -13,4 +13,11 @@
             android:password="true"
             />
     </PreferenceCategory>
+    <PreferenceCategory android:title="View">
+        <CheckBoxPreference
+            android:key="show_caption"
+            android:title="Show Caption"
+            android:defaultValue="true"
+            />
+    </PreferenceCategory>
 </PreferenceScreen>

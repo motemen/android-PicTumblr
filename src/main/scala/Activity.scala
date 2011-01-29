@@ -185,6 +185,16 @@ class PicTumblrActivity extends TypedActivity {
         }
     }
 
+    override def onResume () {
+        super.onResume()
+
+        if (preferences.getBoolean("show_caption", true) == true) {
+            captionTextView.setVisibility(View.VISIBLE)
+        } else {
+            captionTextView.setVisibility(View.GONE)
+        }
+    }
+
     override def onCreateOptionsMenu (menu : Menu) : Boolean = {
         val itemRefresh = menu.add(Menu.NONE, MENU_ITEM_ID_REFRESH, Menu.NONE, "Refresh")
         itemRefresh.setIcon(R.drawable.ic_menu_refresh)
