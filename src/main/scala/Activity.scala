@@ -489,11 +489,18 @@ class PicTumblrActivity extends TypedActivity {
 
         val imagesContainer = PicTumblrActivity.this.imagesContainer
         val posts = PicTumblrActivity.this.posts
+        var dialog : android.app.ProgressDialog = null
 
         def toast (message : String) = PicTumblrActivity.this.toast(message)
 
         override def onPreExecute () {
-            toast("Loading dashboard " + ((page - 1) * perPage + 1) + "-" + (page * perPage))
+            val message = "Loading dashboard " + ((page - 1) * perPage + 1) + "-" + (page * perPage)
+            if (posts.length == 0) {
+                // 最初の一回だけはダイアログを表示する
+                dialog = android.app.ProgressDialog.show(PicTumblrActivity.this, null, message)
+            } else {
+                toast(message)
+            }
         }
 
         // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
@@ -504,6 +511,8 @@ class PicTumblrActivity extends TypedActivity {
         }
 
         override def onPostExecute (result : Tumblr#MaybeError[Seq[Tumblr#PhotoPost]]) {
+            if (dialog != null) dialog.dismiss()
+
             result match {
                 case Left(error) => {
                     toast("error: " + error)
