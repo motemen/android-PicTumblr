@@ -219,7 +219,10 @@ class PicTumblrActivity extends TypedActivity {
         menuItem.getItemId() match {
             case MENU_ITEM_ID_REFRESH => {
                 page = 0
-                goBackDashboard
+                captionTextView.setText(getText(R.string.default_caption))
+                posts.clear()
+                imagesContainer.removeAllViews()
+                goBackDashboard()
             }
             case MENU_ITEM_ID_SETTING => startPreferenceActivity
         }
@@ -290,7 +293,7 @@ class PicTumblrActivity extends TypedActivity {
         captionTextView.setText(
             currentPost match {
                 case Some(post) => post.plainCaption
-                case None       => ""
+                case None       => getText(R.string.default_caption)
             }
         )
     }

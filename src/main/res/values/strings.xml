@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">PicTumblr</string>
+    <string name="default_caption">PICTUMBLR 0.1.1</string>
 </resources>
