@@ -79,12 +79,15 @@ class PicTumblrProject (info: ProjectInfo) extends ParentProject(info) {
             with Defaults with MarketPublish with TypedResources
             with AutoRestartAdbDaemon with SuppressAaptWarnings with FixToolsPathLv9
     {
+        val keyalias = "motemen"
+
         override def proguardOption = (
             "-dontnote scala.Enumeration" ::
             Nil
         ) mkString(" ")
 
-        val keyalias  = "change-me"
+	    override def moduleID = normalizedName
+
         val commonsLang = "commons-lang" % "commons-lang" % "2.5"
     }
 
