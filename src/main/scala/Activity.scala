@@ -58,13 +58,13 @@ class PicTumblrActivity extends TypedActivity {
             }
 
             override def onLongPress (e : MotionEvent) {
-                Log.d("PicTumblrActivity", "onLongPress")
+                // Log.d("PicTumblrActivity", "onLongPress")
                 vibrator.vibrate(25)
                 PicTumblrActivity.this.openContextMenu(horizontalScrollView)
             }
 
             override def onDoubleTap (e : MotionEvent) : Boolean = {
-                Log.d("PicTumblrActivity", "onDoubleTap")
+                // Log.d("PicTumblrActivity", "onDoubleTap")
                 doReblogPost
                 return true
             }
@@ -91,7 +91,7 @@ class PicTumblrActivity extends TypedActivity {
         self : ScrollerLike =>
 
         def _startScroll (startX : Int, startY : Int, dx : Int, dy : Int, _super : (Int, Int, Int, Int) => Unit) : Unit = {
-            Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
+            // Log.d("Scroller", "startScroll: " + (startX, startY, dx, dy))
 
             // XXX ここでやるとずれたとき変になる
             // PicTumblrActivity.this.purgeOldAndLoadNewPosts
@@ -218,7 +218,7 @@ class PicTumblrActivity extends TypedActivity {
     }
 
     override def onCreateContextMenu (menu : ContextMenu, v : View, menuInfo : ContextMenu.ContextMenuInfo) {
-        Log.d("PicTumblrActivity", "onCreateContextMenu")
+        // Log.d("PicTumblrActivity", "onCreateContextMenu")
 
         for (
             post <- currentPost
@@ -262,10 +262,10 @@ class PicTumblrActivity extends TypedActivity {
     }
 
     def purgeOldAndLoadNewPosts () {
-        Log.d("PicTumblrActivity", "purgeOldAndLoadNewPosts")
+        // Log.d("PicTumblrActivity", "purgeOldAndLoadNewPosts")
 
         for (i <- 1 to ((currentIndex - BACKWARD_OFFSET) min (posts.size))) {
-            Log.d("PicTumblrActivity", "dequeue post")
+            // Log.d("PicTumblrActivity", "dequeue post")
             posts.dequeue()
             imagesContainer.removeViewAt(0)
             horizontalScrollView.scrollBy(-horizontalScrollView.getWidth(), 0)
@@ -362,7 +362,7 @@ class PicTumblrActivity extends TypedActivity {
             post <- currentPost;
             tumblr <- getTumblr
         ) {
-            Log.d("PicTumblrActivity", "doReblogPost: " + post)
+            // Log.d("PicTumblrActivity", "doReblogPost: " + post)
 
             // TODO なんかもっと見目よく、何リブログしてるか分かるように
             globalTasks.begin()
@@ -381,7 +381,7 @@ class PicTumblrActivity extends TypedActivity {
             post <- currentPost;
             tumblr <- getTumblr
         ) {
-            Log.d("PicTumblrActivity", "doLikePost: " + post)
+            // Log.d("PicTumblrActivity", "doLikePost: " + post)
 
             // TODO なんかもっと見目よく、何リブログしてるか分かるように
             globalTasks.begin()
@@ -418,7 +418,7 @@ class PicTumblrActivity extends TypedActivity {
 
     def goBackDashboard () {
         if (dashboardLoading) {
-            Log.d("PicTumblrActivity", "goBackDashboard: Already loading")
+            // Log.d("PicTumblrActivity", "goBackDashboard: Already loading")
             return
         }
 
@@ -434,7 +434,7 @@ class PicTumblrActivity extends TypedActivity {
                     val task = new LoadDashboardTask(
                         tumblr, page + 1,
                         new TaskGroup({
-                            Log.d("PicTumblrActivity", "LoadDashboardTask callback")
+                            // Log.d("PicTumblrActivity", "LoadDashboardTask callback")
                             dashboardLoading = false
                             globalTasks.end()
                         })
@@ -446,8 +446,9 @@ class PicTumblrActivity extends TypedActivity {
                 } catch {
                     case e => {
                         Log.e("PicTumblrActivity.goBackDashboard", e.toString)
-                        val stackTrace = e.getStackTrace
-                        stackTrace foreach { s => Log.d("PicTumblrActivity.goBackDashboard", s.toString()) }
+                        e.printStackTrace()
+                        // val stackTrace = e.getStackTrace
+                        // stackTrace foreach { s => Log.d("PicTumblrActivity.goBackDashboard", s.toString()) }
                         toast("Something went wrong: " + e.getMessage)
                     }
                 }
@@ -480,13 +481,13 @@ class PicTumblrActivity extends TypedActivity {
 
         def begin () {
             count = count + 1
-            Log.d("PicTumblrActivity", "TaskGroup: begin: " + count)
+            // Log.d("PicTumblrActivity", "TaskGroup: begin: " + count)
             preCallback
         }
 
         def end () {
             count = count - 1
-            Log.d("PicTumblrActivity", "TaskGroup: end:   " + count)
+            // Log.d("PicTumblrActivity", "TaskGroup: end:   " + count)
 
             if (count == 0) {
                 callback
@@ -517,7 +518,7 @@ class PicTumblrActivity extends TypedActivity {
 
         // 可変長引数でやりとりできないのは AsyncTask1.java にブリッジさせる
         override def doInBackground () : Tumblr#MaybeError[Seq[Tumblr#PhotoPost]] = {
-            Log.d("LoadDashboardTask", "doInBackground")
+            // Log.d("LoadDashboardTask", "doInBackground")
 
             return tumblr.dashboard("start" -> ((page - 1) * perPage).toString, "num" -> perPage.toString)
         }
@@ -536,7 +537,7 @@ class PicTumblrActivity extends TypedActivity {
                     toast("Dashboard loaded.")
 
                     for (post <- loadedPosts) {
-                        Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
+                        // Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
 
                         posts += post
 
@@ -587,7 +588,7 @@ class LoadPhotoTask (imageContainer : ViewGroup, callback : => Unit)
             val bitmap = BitmapFactory.decodeStream(
                 new BufferedHttpEntity(httpResponse.getEntity).getContent(), null, options
             )
-            Log.d("LoadPhotoTask", "doInBackground: loaded " + photoPost.photoUrl)
+            // Log.d("LoadPhotoTask", "doInBackground: loaded " + photoPost.photoUrl)
 
             return bitmap
         } catch {

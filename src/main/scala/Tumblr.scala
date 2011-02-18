@@ -72,7 +72,7 @@ class Tumblr (email : String, password : String) {
 
     def makeRawApiRequest (function : String, params : (String, String)*) : MaybeError[java.io.InputStream]
         = Exception.allCatch.either {
-            Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)
+            // Log.d("Tumblr#makeRawApiRequest", "Requesting " + API_ROOT + function)
 
             val httpClient = new DefaultHttpClient
             val httpPost   = new HttpPost(API_ROOT + function)
@@ -83,7 +83,7 @@ class Tumblr (email : String, password : String) {
 
             val httpResponse = httpClient.execute(httpPost)
             val statusLine   = httpResponse.getStatusLine
-            Log.d("Tumblr#makeRawApiRequest", "Status: " + statusLine)
+            // Log.d("Tumblr#makeRawApiRequest", "Status: " + statusLine)
 
             val statusCode = statusLine.getStatusCode
             val in = new BufferedHttpEntity(httpResponse.getEntity).getContent
