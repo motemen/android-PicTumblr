@@ -67,7 +67,14 @@ class Tumblr (email : String, password : String) {
         ( node \ "@max-width" ).headOption map { _.text.toInt } filter { _ < maxWidth } getOrElse(0)
 
     def makeApiRequest (function : String, params : (String, String)*) : MaybeError[scala.xml.Elem] = {
-        makeRawApiRequest(function, params : _*).right map { XML.load(_) }
+        makeRawApiRequest(function, params : _*).right map { stream =>
+            // to avoid lv7 (android 2.1) bug
+            val factory = javax.xml.parsers.SAXParserFactory.newInstance()
+            factory.setFeature("http://xml.org/sax/features/namespaces", false)
+            factory.setFeature("http://xml.org/sax/features/namespace-prefixes", true)
+            val parser = factory.newSAXParser()
+            XML.loadXML(scala.xml.Source.fromInputStream(stream), parser)
+        }
     }
 
     def makeRawApiRequest (function : String, params : (String, String)*) : MaybeError[java.io.InputStream]

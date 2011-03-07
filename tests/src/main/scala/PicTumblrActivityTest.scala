@@ -100,4 +100,9 @@ class PicTumblrActivityTest
 
         assert(None) // no exception here
     }
+
+    def testLoadDashboard {
+        val tumblr = activity.getTumblr.get
+        val posts = tumblr.dashboard("start" -> "0", "num" -> "5")
+    }
 }
