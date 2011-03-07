@@ -536,6 +536,7 @@ class PicTumblrActivity extends TypedActivity {
                 case Right(loadedPosts) => {
                     toast("Dashboard loaded.")
 
+                    // tasks.begin() // これやっとかないと1件も画像なかったときに終わらない？
                     for (post <- loadedPosts) {
                         // Log.d("LoadDashboardTask", "PhotoPost: " + post.toString())
 
@@ -556,6 +557,7 @@ class PicTumblrActivity extends TypedActivity {
                         val task = new LoadPhotoTask(layout, { tasks.end() })
                         task.execute(post)
                     }
+                    // tasks.end()
 
                     PicTumblrActivity.this.updateCaption
                 }
