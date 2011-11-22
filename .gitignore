@@ -10,3 +10,9 @@ lib_managed/
 src_managed/
 R.java
 .codefellow
+.project-sbt-0.7.4/boot/
+.project-sbt-0.7.4/build/target/
+.project-sbt-0.7.4/plugins/lib_managed/
+.project-sbt-0.7.4/plugins/project/
+.project-sbt-0.7.4/plugins/src_managed/
+.project-sbt-0.7.4/plugins/target/
