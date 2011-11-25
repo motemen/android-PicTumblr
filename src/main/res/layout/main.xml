@@ -4,7 +4,7 @@
     android:layout_height="fill_parent"
     android:id="@+id/layout_frame" android:gravity="center_horizontal|bottom">
 
-    <HorizontalScrollView
+    <net.tokyoenvious.droid.pictumblr.SteppedHorizontalScrollView
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:id="@+id/layout_scrollview">
@@ -15,7 +15,7 @@
             android:id="@+id/images_container">
         </LinearLayout>
 
-    </HorizontalScrollView>
+    </net.tokyoenvious.droid.pictumblr.SteppedHorizontalScrollView>
 
     <!-- TODO 設定可能に -->
     <TextView
