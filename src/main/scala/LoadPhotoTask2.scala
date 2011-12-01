@@ -20,9 +20,13 @@ class LoadPhotoTask2 (
     val TAG = "LoadPhotoTask2"
 
     override def doInBackground () : Bitmap = {
+
         try {
+            val url = photoPost.largestPhotoWithMaxWidth(maxWidth).url
+            Log.d(TAG, "doInBackground: " + url)
+
             val httpClient   = new DefaultHttpClient
-            val httpGet      = new HttpGet(photoPost.largestPhotoWithMaxWidth(maxWidth).url)
+            val httpGet      = new HttpGet(url)
             val httpResponse = httpClient.execute(httpGet)
 
             val options = new BitmapFactory.Options

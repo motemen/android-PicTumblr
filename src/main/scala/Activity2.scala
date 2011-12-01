@@ -73,25 +73,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
 
         for ((entry, i) <- newEntries.zipWithIndex) {
             val imageContainer = addNewImageContainer()
-
-            if (imagesContainer.getChildCount() > 20) {
-            }
-
-            entry.task = new LoadPhotoTask2(
-                maxWidth = maxWidth,
-                imageContainer = imageContainer,
-                photoPost = entry.post,
-                onLoad = (bitmap : Bitmap) => {
-                    entry.bitmap = bitmap
-
-                    val imageView = new ImageView(PicTumblrActivity2.this)
-                    imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
-                    imageView.setImageBitmap(bitmap)
-                    imageView.setAdjustViewBounds(true)
-
-                    imageContainer.addView(imageView)
-                }
-            )
+            entry.task = createLoadPhotoTask(entry, imageContainer)
             entry.task.execute()
         }
 
@@ -110,6 +92,36 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
                 error.printStackTrace()
                 Log.w(TAG, error.getMessage())
                 startOAuth() // TODO check error type
+            }
+        )
+    }
+
+    def createLoadPhotoTask (entry : Entry, imageContainer : ViewGroup) : LoadPhotoTask2 = {
+        new LoadPhotoTask2(
+            maxWidth = maxWidth,
+            imageContainer = imageContainer,
+            photoPost = entry.post,
+            onLoad = (bitmap : Bitmap) => {
+                entry.bitmap = bitmap
+
+                val imageView : ImageView = new ImageView(PicTumblrActivity2.this) {
+                    override def onDraw (canvas : android.graphics.Canvas) {
+                        val bitmap = getDrawable().asInstanceOf[android.graphics.drawable.BitmapDrawable].getBitmap()
+                        if (bitmap != null && bitmap.isRecycled()) {
+                            Log.d(TAG, "imageView: bitmap is recycled")
+                            getParent().asInstanceOf[ViewGroup].removeView(this)
+                            entry.task = createLoadPhotoTask(entry, imageContainer)
+                            entry.task.execute()
+                        } else {
+                            super.onDraw(canvas)
+                        }
+                    }
+                }
+                imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                imageView.setImageBitmap(bitmap)
+                imageView.setAdjustViewBounds(true)
+
+                imageContainer.addView(imageView)
             }
         )
     }
