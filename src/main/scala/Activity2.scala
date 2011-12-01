@@ -1,108 +1,117 @@
 package net.tokyoenvious.droid.pictumblr
 
-import android.os.Bundle
-import android.content.Context
-import android.content.Intent
-import android.view.WindowManager
-import android.view.GestureDetector
-import android.view.MotionEvent
-import android.preference.PreferenceManager
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.graphics.Bitmap
 import android.util.Log
-
-import oauth.signpost.commonshttp.CommonsHttpOAuthConsumer
-import oauth.signpost.commonshttp.CommonsHttpOAuthProvider
 
 import scala.collection.mutable.Queue
 
-class PicTumblrActivity2 extends TypedActivity {
-    val CONSUMER_KEY    = LocalDefs.TUMBLR_OAUTH_CONSUMER_KEY
-    val CONSUMER_SECRET = LocalDefs.TUMBLR_OAUTH_CONSUMER_SECRET
-
-    val CALLBACK_URL = "pictumblr://oauth/callback"
-
-    val PREFERENCE_NAME_OAUTH = "OAuth"
-    val PREFERENCE_KEY_TOKEN        = "token"
-    val PREFERENCE_KEY_TOKEN_SECRET = "token_secret"
-
-    lazy val consumer = new CommonsHttpOAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET)
-    lazy val provider = new CommonsHttpOAuthProvider(
-        "http://www.tumblr.com/oauth/request_token",
-        "http://www.tumblr.com/oauth/access_token",
-        "http://www.tumblr.com/oauth/authorize"
-    )
-
-    lazy val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
+    val TAG = "PicTumblrActivity2"
 
     lazy val steppedHorizontalScrollView = findView(TR.layout_scrollview)
     lazy val imagesContainer             = findView(TR.images_container)
     lazy val captionTextView             = findView(TR.textview_caption)
 
-    lazy val displayWidth = getSystemService(Context.WINDOW_SERVICE)
-                .asInstanceOf[WindowManager].getDefaultDisplay().getWidth
+    lazy val displayWidth = getSystemService(android.content.Context.WINDOW_SERVICE)
+                .asInstanceOf[android.view.WindowManager].getDefaultDisplay().getWidth()
 
     lazy val maxWidth = displayWidth // TODO make configurable
 
-    val posts = new Queue[Tumblr2#PhotoPost]();
+    val forwardOffset = 5 // TODO make configurable?
 
-    override def onCreate (savedInstanceState : Bundle) {
+    case class Entry (post : Tumblr2#PhotoPost, var task : LoadPhotoTask2, var bitmap : Bitmap)
+
+    val entries = new Queue[Entry]();
+
+    var tumblr : Tumblr2 = null
+    var offset : Int = 0
+
+    override def onCreate (savedInstanceState : android.os.Bundle) {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.main)
 
         steppedHorizontalScrollView.onNext = () => {
             updateCaption(+1)
+            loadNewPosts()
+            for (i <- 0 to getCurrentIndex - 1; entry <- entries.get(i)) {
+                if (entry.bitmap != null) {
+                    entry.bitmap.recycle()
+                }
+            }
         }
 
         steppedHorizontalScrollView.onPrev = () => {
             updateCaption(-1)
         }
 
-        val uri = getIntent().getData()
-        Log.d("PicTumblrActivity#onCreate", "Got intent: " + uri)
-
-        val prefs = getSharedPreferences(PREFERENCE_NAME_OAUTH, 0)
-        val token       = prefs.getString(PREFERENCE_KEY_TOKEN, null)
-        val tokenSecret = prefs.getString(PREFERENCE_KEY_TOKEN_SECRET, null)
-        Log.v("PicTumblrActivity#onCreate", "token: " + token + " tokenSecret: " + tokenSecret)
-
-        if (token != null && tokenSecret != null) {
-            consumer.setTokenWithSecret(token, tokenSecret)
-        }
-
-        if (uri != null && uri.toString().startsWith(CALLBACK_URL)) {
-            val verifier = uri.getQueryParameter(oauth.signpost.OAuth.OAUTH_VERIFIER)
-            provider.setOAuth10a(true)
-            provider.retrieveAccessToken(consumer, verifier)
-
-            val prefs = getSharedPreferences(PREFERENCE_NAME_OAUTH, 0)
-            val editor = prefs.edit()
-            editor.putString(PREFERENCE_KEY_TOKEN,        consumer.getToken())
-            editor.putString(PREFERENCE_KEY_TOKEN_SECRET, consumer.getTokenSecret())
-            editor.commit()
-
-            Log.d("PicTumblrActivity#onCreate", "Got token: " + consumer.getToken())
-            Log.d("PicTumblrActivity#onCreate", "Got token_secret: " + consumer.getTokenSecret())
-        }
-
-        val tumblr = new Tumblr2(consumer)
-        val task = new LoadDashboardTask2(this, tumblr, 0)
-        task.execute()
+        tumblr = new Tumblr2(oauthAuthorize())
+        createLoadDashboardTask().execute(0)
     }
 
-    def startOAuth () {
-        val url = provider.retrieveRequestToken(consumer, CALLBACK_URL)
+    def addNewImageContainer () = {
+        val layout = new android.widget.RelativeLayout(PicTumblrActivity2.this)
+        layout.setGravity(android.view.Gravity.CENTER)
 
-        Log.d("PicTumblrActivity#startOAuth", "Generated token: "        + consumer.getToken())
-        Log.d("PicTumblrActivity#startOAuth", "Generated token_secret: " + consumer.getTokenSecret())
+        imagesContainer.addView(
+            layout,
+            new ViewGroup.LayoutParams(
+                displayWidth,
+                ViewGroup.LayoutParams.FILL_PARENT
+            )
+        )
+        
+        layout
+    }
 
-        val prefs = getSharedPreferences(PREFERENCE_NAME_OAUTH, 0)
-        val editor = prefs.edit()
-        editor.putString(PREFERENCE_KEY_TOKEN,        consumer.getToken())
-        editor.putString(PREFERENCE_KEY_TOKEN_SECRET, consumer.getTokenSecret())
-        editor.commit()
+    def onDashboardLoad (loadedPosts : Seq[Tumblr2#PhotoPost]) {
+        Log.d(TAG, "loaded: " + loadedPosts.map { _.id }.mkString(","))
 
-        val intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-        startActivity(intent) // tumblr.com -> (user allows) -[callback]-> this Activity
+        val newEntries = loadedPosts.map { Entry(_, null, null) }
+
+        for ((entry, i) <- newEntries.zipWithIndex) {
+            val imageContainer = addNewImageContainer()
+
+            if (imagesContainer.getChildCount() > 20) {
+            }
+
+            entry.task = new LoadPhotoTask2(
+                maxWidth = maxWidth,
+                imageContainer = imageContainer,
+                photoPost = entry.post,
+                onLoad = (bitmap : Bitmap) => {
+                    entry.bitmap = bitmap
+
+                    val imageView = new ImageView(PicTumblrActivity2.this)
+                    imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                    imageView.setImageBitmap(bitmap)
+                    imageView.setAdjustViewBounds(true)
+
+                    imageContainer.addView(imageView)
+                }
+            )
+            entry.task.execute()
+        }
+
+        entries ++= newEntries
+        offset += entries.length
+        Log.d(TAG, "offset=" + offset)
+
+        updateCaption()
+    }
+
+    def createLoadDashboardTask () = {
+        new LoadDashboardTask2(
+            tumblr  = tumblr,
+            onLoad  = onDashboardLoad,
+            onError = (error : Throwable) => {
+                error.printStackTrace()
+                Log.w(TAG, error.getMessage())
+                startOAuth() // TODO check error type
+            }
+        )
     }
 
     def getCurrentIndex () : Int = {
@@ -126,11 +135,18 @@ class PicTumblrActivity2 extends TypedActivity {
     }
 
     def getCurrentPost (delta : Int = 0) : Option[Tumblr2#PhotoPost]
-        = posts.get(getCurrentIndex() + delta)
+        = entries.get(getCurrentIndex() + delta) map { _.post }
 
     def updateCaption (delta : Int = 0) {
         captionTextView.setText(
-            getCurrentPost(delta).map { _.plainCaption }.getOrElse("default")
+            getCurrentPost(delta).map { _.plainCaption }.getOrElse(getText(R.string.default_caption))
         )
+    }
+
+    def loadNewPosts () {
+        var index = getCurrentIndex()
+        if (entries.length - index <= forwardOffset) {
+            createLoadDashboardTask().execute(offset)
+        }
     }
 }

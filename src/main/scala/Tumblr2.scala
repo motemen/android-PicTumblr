@@ -8,17 +8,22 @@ import org.json.{JSONObject, JSONArray}
 
 import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.client.methods.HttpGet
-import org.apache.http.client.utils.URIUtils
 import org.apache.http.entity.BufferedHttpEntity
 import org.apache.http.entity.StringEntity
 import org.apache.http.protocol.HTTP
 
+import org.apache.http.client.utils.URIUtils
+import org.apache.http.client.utils.URLEncodedUtils
 import org.apache.commons.lang.StringEscapeUtils
 import org.apache.commons.io.IOUtils
 
 import oauth.signpost.commonshttp.CommonsHttpOAuthConsumer
 
+import scala.collection.JavaConversions._
+
 class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer) {
+    val TAG = "Tumblr2"
+
     implicit def jsonArray2Seq (array : JSONArray) = {
         for (i <- 0 until array.length())
             yield array.getJSONObject(i)
@@ -31,6 +36,8 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer) {
     }
 
     class PhotoPost (val postJSON : JSONObject) {
+        type AltPhotos = Seq[Photo]
+
         lazy val id        = postJSON.getLong("id")
         lazy val reblogKey = postJSON.getLong("reblog_key")
         lazy val postUrl   = postJSON.getString("post_url")
@@ -42,14 +49,14 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer) {
             StringEscapeUtils.unescapeHtml(IOUtils.toString(entity.getContent))
         }
 
-        lazy val photos : Seq[Seq[Photo]] = try {
+        lazy val photos : Seq[AltPhotos] = try {
             for (photo <- postJSON.getJSONArray("photos"))
                 yield Seq(new Photo(photo.getJSONObject("original_size"))) ++
                     photo.getJSONArray("alt_sizes").map { new Photo(_) }
         } catch {
             case e : org.json.JSONException => {
-                Log.w("PicTumblr", e.toString())
-                Log.w("PicTumblr", "json=" + postJSON.toString())
+                Log.w(TAG, e.toString())
+                Log.w(TAG, "json=" + postJSON.toString())
                 Seq()
             }
         }
@@ -60,25 +67,30 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer) {
     }
 
     def dashboardJSON (params : (String, String)*) : Either[Throwable, JSONObject] = Exception.allCatch.either {
-        val httpClient = new DefaultHttpClient()
-        val uri        = URIUtils.createURI("http", "api.tumblr.com", -1, "/v2/user/dashboard", "type=photo", null)
-        val request    = new HttpGet(uri)
+        val httpClient  = new DefaultHttpClient()
+        val queryString = URLEncodedUtils.format(
+            for ((k, v) <- params) yield new org.apache.http.message.BasicNameValuePair(k, v),
+            HTTP.UTF_8
+        )
+        val uri     = URIUtils.createURI("http", "api.tumblr.com", -1, "/v2/user/dashboard", queryString, null)
+        val request = new HttpGet(uri)
 
         oauthConsumer.sign(request)
 
-        Log.v("PicTumblr", "dashboard requestLine=" + request.getRequestLine())
+        Log.v(TAG, "dashboard requestLine=" + request.getRequestLine())
 
         val response   = httpClient.execute(request)
         val statusLine = response.getStatusLine()
         val statusCode = statusLine.getStatusCode()
 
-        Log.v("PicTumblr", "dashboard statusLine=" + statusLine)
+        Log.v(TAG, "dashboard statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
             val is = new BufferedHttpEntity(response.getEntity()).getContent()
             val string = IOUtils.toString(is)
-            Log.v("PicTumblr", "dashboard JSON=" + string)
-            new JSONObject(string)
+            val json = new JSONObject(string)
+            Log.v(TAG, "dashboard JSON=" + json.toString(2))
+            json
         } else {
             throw new Exception(statusLine.toString())
         }
