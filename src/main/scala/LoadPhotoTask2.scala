@@ -12,7 +12,7 @@ import org.apache.http.entity.BufferedHttpEntity
 class LoadPhotoTask2 (
         maxWidth : Int,
         imageContainer : android.view.ViewGroup,
-        photoPost : Tumblr2#PhotoPost,
+        photoPost : TumblrPhotoPost,
         onLoad : (Bitmap) => Unit
     )
     extends AsyncTask0[java.lang.Void, Bitmap] {

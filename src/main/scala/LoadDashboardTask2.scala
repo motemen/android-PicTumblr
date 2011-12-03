@@ -4,10 +4,10 @@ import android.util.Log
 
 class LoadDashboardTask2 (
         tumblr  : Tumblr2,
-        onLoad  : (Seq[Tumblr2#PhotoPost]) => Unit,
+        onLoad  : (Seq[TumblrPhotoPost]) => Unit,
         onError : (Throwable) => Unit
     )
-    extends AsyncTask1[Int, java.lang.Void, Either[Throwable, Seq[Tumblr2#PhotoPost]]] {
+    extends AsyncTask1[Int, java.lang.Void, Either[Throwable, Seq[TumblrPhotoPost]]] {
 
     val TAG = "LoadDashboardTask2"
 
@@ -17,10 +17,10 @@ class LoadDashboardTask2 (
         Log.v(TAG, "onPreExecute")
     }
 
-    override def doInBackground (offset : Int) : Either[Throwable, Seq[Tumblr2#PhotoPost]]
+    override def doInBackground (offset : Int) : Either[Throwable, Seq[TumblrPhotoPost]]
         = tumblr.dashboardPhotoPosts("offset" -> offset.toString())
 
-    override def onPostExecute (result : Either[Throwable, Seq[Tumblr2#PhotoPost]]) {
+    override def onPostExecute (result : Either[Throwable, Seq[TumblrPhotoPost]]) {
         Log.v(TAG, "onPostExecute: " + result)
 
         result match {
