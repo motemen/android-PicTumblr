@@ -20,8 +20,5 @@
         </activity>
         <activity android:label="@string/app_name" android:name=".PicTumblrPrefernceActivity">
         </activity>
-        <activity android:label="@string/app_name" android:name=".PicTumblrOAuthActivity"
-            android:launchMode="singleTop">
-        </activity>
     </application>
 </manifest>

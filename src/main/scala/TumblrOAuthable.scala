@@ -16,9 +16,12 @@ trait TumblrOAuthable extends Activity {
 
     val CALLBACK_URL = "pictumblr://oauth/callback"
 
-    val PREFERENCE_NAME_OAUTH       = "OAuth"
-    val PREFERENCE_KEY_TOKEN        = "token"
-    val PREFERENCE_KEY_TOKEN_SECRET = "token_secret"
+    // val PREFERENCE_NAME_OAUTH        = "OAuth"
+    val PREFERENCE_KEY_TOKEN         = "token"
+    val PREFERENCE_KEY_TOKEN_SECRET  = "token_secret"
+    val PREFERENCE_KEY_BASE_HOSTNAME = "base_hostname"
+
+    var tumblr : Tumblr2 = null
 
     private lazy val oauthConsumer = new CommonsHttpOAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET)
     private lazy val oauthProvider = new CommonsHttpOAuthProvider(
@@ -27,50 +30,75 @@ trait TumblrOAuthable extends Activity {
         "http://www.tumblr.com/oauth/authorize"
     )
 
-    def oauthAuthorize () : CommonsHttpOAuthConsumer = {
+    private def getPrefs ()
+        = android.preference.PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+
+    def oauthAuthorize () {
         val uri = getIntent().getData()
         Log.v(TAG, "Got intent: " + uri)
 
-        val prefs       = getSharedPreferences(PREFERENCE_NAME_OAUTH, 0)
-        val token       = prefs.getString(PREFERENCE_KEY_TOKEN, null)
-        val tokenSecret = prefs.getString(PREFERENCE_KEY_TOKEN_SECRET, null)
-        Log.v(TAG, "token: " + token + " tokenSecret: " + tokenSecret)
+        val prefs        = getPrefs()
+        val token        = prefs.getString(PREFERENCE_KEY_TOKEN, null)
+        val tokenSecret  = prefs.getString(PREFERENCE_KEY_TOKEN_SECRET, null)
+        var baseHostname = prefs.getString(PREFERENCE_KEY_BASE_HOSTNAME, null)
+        Log.v(TAG, "saved token: " + token + " tokenSecret: " + tokenSecret + " baseHostname: " + baseHostname)
 
         if (token != null && tokenSecret != null) {
             oauthConsumer.setTokenWithSecret(token, tokenSecret)
         }
+
+        val editor = prefs.edit()
 
         if (uri != null && uri.toString().startsWith(CALLBACK_URL)) {
             val verifier = uri.getQueryParameter(OAuth.OAUTH_VERIFIER)
             oauthProvider.setOAuth10a(true)
             oauthProvider.retrieveAccessToken(oauthConsumer, verifier)
 
-            val prefs = getSharedPreferences(PREFERENCE_NAME_OAUTH, 0)
-            val editor = prefs.edit()
             editor.putString(PREFERENCE_KEY_TOKEN,        oauthConsumer.getToken())
             editor.putString(PREFERENCE_KEY_TOKEN_SECRET, oauthConsumer.getTokenSecret())
-            editor.commit()
 
             Log.d(TAG, "Got token: " + oauthConsumer.getToken())
             Log.d(TAG, "Got token_secret: " + oauthConsumer.getTokenSecret())
         }
 
-        return oauthConsumer
+        tumblr = new Tumblr2(oauthConsumer, baseHostname)
+        tumblr.fetchBaseHostname()
+
+        if (tumblr.baseHostname != baseHostname) {
+            editor.putString(PREFERENCE_KEY_BASE_HOSTNAME, tumblr.baseHostname)
+            Log.v(TAG, "Got baseHostname: " + tumblr.baseHostname)
+        }
+
+        editor.commit()
     }
 
     def startOAuth () {
+        eraseAuthTokens()
+
         val url = oauthProvider.retrieveRequestToken(oauthConsumer, CALLBACK_URL)
 
         Log.v(TAG, "Generated token: "        + oauthConsumer.getToken())
         Log.v(TAG, "Generated token_secret: " + oauthConsumer.getTokenSecret())
 
-        val prefs = getSharedPreferences(PREFERENCE_NAME_OAUTH, 0)
+        val prefs  = getPrefs()
         val editor = prefs.edit()
         editor.putString(PREFERENCE_KEY_TOKEN,        oauthConsumer.getToken())
         editor.putString(PREFERENCE_KEY_TOKEN_SECRET, oauthConsumer.getTokenSecret())
         editor.commit()
 
         val intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-        startActivity(intent) // tumblr.com -> (user allows) -[callback]-> this Activity
+        startActivity(intent) // tumblr.com -> (user allows) -[callback]-> this Activity ( -> oauthConsumer)
+        /*
+        startActivity(Intent.parseUri(url, 0)) // tumblr.com -> (user allows) -[callback]-> this Activity ( -> oauthConsumer)
+        */
+    }
+
+    def eraseAuthTokens () {
+        val prefs  = getPrefs()
+        val editor = prefs.edit()
+        editor.remove(PREFERENCE_KEY_TOKEN)
+        editor.remove(PREFERENCE_KEY_TOKEN_SECRET)
+        editor.remove(PREFERENCE_KEY_BASE_HOSTNAME)
+        editor.commit()
     }
 }

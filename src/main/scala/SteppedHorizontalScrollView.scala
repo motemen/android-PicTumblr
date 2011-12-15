@@ -55,8 +55,9 @@ class SteppedHorizontalScrollView (context : android.content.Context, attrs : an
             return true
         }
     }
-    
-    lazy val gestureDetector = new GestureDetector(gestureListener)
+
+    val gestureDetector = new GestureDetector(gestureListener)
+    gestureDetector.setIsLongpressEnabled(true)
 
     setOnTouchListener(
         new View.OnTouchListener() {

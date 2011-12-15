@@ -32,10 +32,9 @@ object JSONArray2Seq {
 
 import JSONArray2Seq._
 
-class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer) {
-    val TAG = "Tumblr2"
-
-    lazy val httpClient  = new DefaultHttpClient()
+class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : String = null) {
+    private val TAG = "Tumblr2"
+    private lazy val httpClient  = new DefaultHttpClient()
 
     def dashboardJSON (params : (String, String)*) : Either[Throwable, JSONObject] = Exception.allCatch.either {
         val queryString = URLEncodedUtils.format(
@@ -44,6 +43,12 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer) {
         )
         val uri     = URIUtils.createURI("http", "api.tumblr.com", -1, "/v2/user/dashboard", queryString, null)
         val request = new HttpGet(uri)
+        /*
+        val builder = new android.net.Uri.Builder()
+        builder.scheme("http").authority("api.tumblr.com").path("/v2/user/dashboard")
+        for ((k, v) <- params) builder.appendQueryParameter(k, v)
+        val request = new HttpGet(builder.build().toString())
+        */
 
         oauthConsumer.sign(request)
 
@@ -71,21 +76,57 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer) {
             _.getJSONObject("response").getJSONArray("posts").map { new TumblrPhotoPost(_) }
         }
 
+    // TODO: catch exception
     def reblog (post : TumblrPhotoPost) {
-        val httpPost = new HttpPost("http://api.tumblr.com/v2/blog/{base-hostname}/post/reblog") // TODO
+        val request = new HttpPost("http://api.tumblr.com/v2/blog/" + baseHostname + "/post/reblog")
         val httpParams = Seq(
             new BasicNameValuePair("id", post.id.toString()),
             new BasicNameValuePair("rebllog_key", post.reblogKey)
         )
-        httpPost.setEntity(new UrlEncodedFormEntity(httpParams))
+        request.setEntity(new UrlEncodedFormEntity(httpParams))
 
-        val response   = httpClient.execute(httpPost)
+        oauthConsumer.sign(request)
+
+        val response   = httpClient.execute(request)
         val statusLine = response.getStatusLine()
         val statusCode = statusLine.getStatusCode()
 
-        Log.v(TAG, "dashboard statusLine=" + statusLine)
+        Log.v(TAG, "reblog statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
+        } else {
+            throw new Exception(statusLine.toString())
+        }
+    }
+
+    case class Blog (url : android.net.Uri, name : String)
+
+    def fetchBaseHostname () {
+        if (baseHostname == null) {
+            baseHostname = userInfoPrimaryBlog().url.getHost()
+        }
+    }
+
+    def userInfoPrimaryBlog () : Blog = {
+        val request = new HttpPost("http://api.tumblr.com/v2/user/info")
+
+        oauthConsumer.sign(request)
+
+        val response   = httpClient.execute(request)
+        val statusLine = response.getStatusLine()
+        val statusCode = statusLine.getStatusCode()
+
+        Log.v(TAG, "userInfo statusLine=" + statusLine)
+
+        if (200 <= statusCode && statusCode < 300) {
+            val is = new BufferedHttpEntity(response.getEntity()).getContent()
+            val string = IOUtils.toString(is)
+            val json = new JSONObject(string)
+            json.getJSONObject("response").getJSONObject("user").getJSONArray("blogs").find {
+                _.getBoolean("primary")
+            }.map { (blogJSON) => 
+                Blog(android.net.Uri.parse(blogJSON.getString("url")), blogJSON.getString("name"))
+            }.get
         } else {
             throw new Exception(statusLine.toString())
         }

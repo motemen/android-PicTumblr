@@ -2,43 +2,43 @@ package net.tokyoenvious.droid.pictumblr
 
 import android.preference
 import android.preference.PreferenceActivity
-import android.preference.EditTextPreference
+import android.preference.Preference
 import android.content.SharedPreferences
-import android.os.Bundle
-import android.widget
-import android.view.View
-import android.view.View.OnClickListener
+import android.app.AlertDialog;
 
 class PicTumblrPrefernceActivity extends PreferenceActivity
-    with SharedPreferences.OnSharedPreferenceChangeListener {
+        with TumblrOAuthable {
 
-    override def onCreate (savedInstanceState : Bundle) {
+    override def onCreate (savedInstanceState : android.os.Bundle) {
         super.onCreate(savedInstanceState)
         addPreferencesFromResource(R.layout.preference)
-        updateSummaries()
+
+        var baseHostnamePref = getPreferenceScreen().findPreference("base_hostname")
+        baseHostnamePref.setSummary(baseHostnamePref.getSharedPreferences().getString("base_hostname", ""))
+        baseHostnamePref.setOnPreferenceClickListener(
+            new Preference.OnPreferenceClickListener () {
+                override def onPreferenceClick (preference : Preference) = {
+                    PicTumblrPrefernceActivity.this.showEraseAuthTokensDialog()
+                    true
+                }
+            }
+        )
     }
 
-    override def onSharedPreferenceChanged (sharedPreferences : SharedPreferences, key : String) {
-        updateSummaries()
-    }
-
-    override def onResume () {
-        super.onResume()
-        getPreferenceScreen().getSharedPreferences().registerOnSharedPreferenceChangeListener(this)
-    }
-
-    override def onPause () {
-        super.onPause()
-        getPreferenceScreen().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this)
-    }
-
-    def updateSummaries () {
-        val email = getPreferenceScreen().findPreference("email").asInstanceOf[EditTextPreference]
-        email.setSummary(email.getText())
-
-        val password = getPreferenceScreen().findPreference("password").asInstanceOf[EditTextPreference]
-        val passwordValue = password.getText()
-        password.setSummary(if (passwordValue != null && passwordValue.length > 0) "*******" else "")
+    def showEraseAuthTokensDialog () {
+        new AlertDialog.Builder(this)
+            // .setTitle("Erase tokens")
+            .setMessage("Erase auth tokens?")
+            .setPositiveButton("Erase", new android.content.DialogInterface.OnClickListener () {
+                override def onClick (diaglog : android.content.DialogInterface, which : Int) {
+                    PicTumblrPrefernceActivity.this.eraseAuthTokens()
+                }
+            })
+            .setNegativeButton("Cancel", new android.content.DialogInterface.OnClickListener () {
+                override def onClick (diaglog : android.content.DialogInterface, which : Int) {
+                }
+            })
+            .show()
     }
 }
 

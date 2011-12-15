@@ -30,7 +30,6 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
 
     val entries = new Queue[Entry]();
 
-    var tumblr : Tumblr2 = null
     var offset : Int = 0
 
     override def onCreate (savedInstanceState : android.os.Bundle) {
@@ -40,7 +39,16 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
 
         setupSteppedHorizontalScrollView()
 
-        tumblr = new Tumblr2(oauthAuthorize())
+        try {
+            oauthAuthorize()
+        } catch {
+            case e => {
+                e.printStackTrace()
+                Log.w(TAG, e.toString())
+                startOAuth() // TODO check error type
+            }
+        }
+
         createLoadDashboardTask().execute(0)
     }
 
@@ -191,7 +199,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
             case MENU_ITEM_ID_REFRESH => TODO("clearAndGoBackDashboard")
-            case MENU_ITEM_ID_SETTING => TODO("startPreferenceActivity")
+            case MENU_ITEM_ID_SETTING => startActivity(new Intent(this, classOf[PicTumblrPrefernceActivity]))
         }
 
         return true
