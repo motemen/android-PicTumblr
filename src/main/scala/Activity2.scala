@@ -4,6 +4,7 @@ import android.content.Intent
 import android.view.ViewGroup
 import android.view.{Menu, ContextMenu, MenuItem}
 import android.widget.ImageView
+import android.widget.Toast
 import android.graphics.Bitmap
 import android.util.Log
 
@@ -67,6 +68,8 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     }
 
     def setupSteppedHorizontalScrollView () {
+        registerForContextMenu(steppedHorizontalScrollView)
+
         steppedHorizontalScrollView.onNext = () => {
             updateCaption(+1)
             loadNewPosts()
@@ -87,7 +90,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
         }
 
         steppedHorizontalScrollView.onDoubleTap = () => {
-            TODO("doReblogPost")
+            doReblogPost()
         }
     }
 
@@ -253,14 +256,31 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
                 }
             }
             case CONTEXT_MENU_ID_ITEM_REBLOG => {
-                for ( post <- getCurrentPost() ) {
-                    tumblr.reblog(post)
-                }
+                TODO("doReblogPost")
             }
-            case CONTEXT_MENU_ID_ITEM_LIKE => TODO("doLikePost")
+            case CONTEXT_MENU_ID_ITEM_LIKE => {
+                doLikePost()
+            }
         }
 
         return true
     }
 
+    def doReblogPost () {
+        for ( post <- getCurrentPost() ) {
+            val task = new ReblogPostTask2(tumblr, {
+                Toast.makeText(this, "Reblogged.", Toast.LENGTH_SHORT).show()
+            })
+            task.execute(post)
+        }
+    }
+
+    def doLikePost () {
+        for ( post <- getCurrentPost() ) {
+            val task = new LikePostTask2(tumblr, {
+                Toast.makeText(this, "Liked.", Toast.LENGTH_SHORT).show()
+            })
+            task.execute(post)
+        }
+    }
 }

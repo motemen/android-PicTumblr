@@ -81,7 +81,30 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
         val request = new HttpPost("http://api.tumblr.com/v2/blog/" + baseHostname + "/post/reblog")
         val httpParams = Seq(
             new BasicNameValuePair("id", post.id.toString()),
-            new BasicNameValuePair("rebllog_key", post.reblogKey)
+            new BasicNameValuePair("reblog_key", post.reblogKey)
+        )
+        request.setEntity(new UrlEncodedFormEntity(httpParams))
+
+        oauthConsumer.sign(request)
+
+        val response   = httpClient.execute(request)
+        val statusLine = response.getStatusLine()
+        val statusCode = statusLine.getStatusCode()
+
+        Log.v(TAG, "reblog statusLine=" + statusLine)
+
+        if (200 <= statusCode && statusCode < 300) {
+        } else {
+            throw new Exception(statusLine.toString())
+        }
+    }
+
+    // TODO: catch exception
+    def like (post : TumblrPhotoPost) {
+        val request = new HttpPost("http://api.tumblr.com/v2/user/like")
+        val httpParams = Seq(
+            new BasicNameValuePair("id", post.id.toString()),
+            new BasicNameValuePair("reblog_key", post.reblogKey)
         )
         request.setEntity(new UrlEncodedFormEntity(httpParams))
 

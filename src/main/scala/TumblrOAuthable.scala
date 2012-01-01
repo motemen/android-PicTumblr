@@ -33,6 +33,7 @@ trait TumblrOAuthable extends Activity {
     private def getPrefs ()
         = android.preference.PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
 
+    // background
     def oauthAuthorize () {
         val uri = getIntent().getData()
         Log.v(TAG, "Got intent: " + uri)
@@ -72,6 +73,7 @@ trait TumblrOAuthable extends Activity {
         editor.commit()
     }
 
+    // foreground
     def startOAuth () {
         eraseAuthTokens()
 
@@ -93,6 +95,7 @@ trait TumblrOAuthable extends Activity {
         */
     }
 
+    // foreground
     def eraseAuthTokens () {
         val prefs  = getPrefs()
         val editor = prefs.edit()
