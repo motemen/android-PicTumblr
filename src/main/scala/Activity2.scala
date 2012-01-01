@@ -39,17 +39,31 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
 
         setupSteppedHorizontalScrollView()
 
-        try {
-            oauthAuthorize()
-        } catch {
-            case e => {
-                e.printStackTrace()
-                Log.w(TAG, e.toString())
-                startOAuth() // TODO check error type
+        val loadingDialog = android.app.ProgressDialog.show(this, null, "Loading dashboard")
+
+        val startTask = new AsyncTask0[java.lang.Void, Either[Throwable, Unit]] {
+            override def doInBackground() : Either[Throwable, Unit] = {
+                util.control.Exception.allCatch.either {
+                    oauthAuthorize()
+                }
+            }
+
+            override def onPostExecute (result : Either[Throwable, Unit]) = {
+                result match {
+                    case Right(_) => {
+                        createLoadDashboardTask(dialog = loadingDialog).execute(0)
+                    }
+
+                    // TODO: check error type
+                    case Left(error) => {
+                        error.printStackTrace()
+                        Log.w(TAG, error.toString())
+                        startOAuth()
+                    }
+                }
             }
         }
-
-        createLoadDashboardTask().execute(0)
+        startTask.execute()
     }
 
     def setupSteppedHorizontalScrollView () {
@@ -110,10 +124,13 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
         updateCaption()
     }
 
-    def createLoadDashboardTask () = {
+    def createLoadDashboardTask (dialog : android.app.ProgressDialog = null) : LoadDashboardTask2 = {
         new LoadDashboardTask2(
             tumblr  = tumblr,
-            onLoad  = onDashboardLoad,
+            onLoad  = (loadedPosts : Seq[TumblrPhotoPost]) => {
+                if (dialog != null) dialog.dismiss()
+                onDashboardLoad(loadedPosts)
+            },
             onError = (error : Throwable) => {
                 error.printStackTrace()
                 Log.w(TAG, error.getMessage())
