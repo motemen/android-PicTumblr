@@ -114,7 +114,7 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
         val statusLine = response.getStatusLine()
         val statusCode = statusLine.getStatusCode()
 
-        Log.v(TAG, "reblog statusLine=" + statusLine)
+        Log.v(TAG, "like statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
         } else {

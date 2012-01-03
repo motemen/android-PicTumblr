@@ -15,17 +15,31 @@ object Common {
         TypedResources.settings ++
         AndroidMarketPublish.settings ++
         AndroidManifestGenerator.settings ++
-        AndroidInstall.settings ++ Seq(
+        AndroidInstall.settings ++
+        Seq(
             keyalias in Android := "motemen",
-            useProguard in Android := true
+            useProguard in Android := false /* true */
+        ) ++
+        Seq(
+            startEmulator <<= (startEmulator in Android) dependsOn (installEmulator in Android) dependsOn (packageDebug in Android),
+            installDevice <<= (installDevice in Android) dependsOn (packageDebug in Android)
         )
 
     val androidTestProjectSettings =
         androidSettings ++
-        AndroidTest.androidSettings ++ Seq(
-            libraryDependencies ++= Seq(
-                "org.scalatest" % "scalatest" % "1.2"
-            )
+        AndroidTest.settings ++
+        // AndroidTest.androidSettings ++
+        Seq(
+            useProguard in Android := false /* true */,
+            proguardOption in Android := (
+                "-keep public class * implements org.scalatest.junit.ShouldMatchersForJUnit" ::
+                "-keep public class org.scalatest.**" ::
+                "-keep public class org.scalatest.junit.**" ::
+                Nil
+            ) mkString ("\n")
+        ) ++
+        Seq(
+            TaskKey[Unit]("suite", "compiles, installs and runs tests in emulator") <<= (testEmulator in Android) dependsOn (installEmulator in Android) dependsOn (packageDebug in Android)
         )
 }
 
