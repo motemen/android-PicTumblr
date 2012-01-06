@@ -18,7 +18,7 @@ object Common {
         AndroidInstall.settings ++
         Seq(
             keyalias in Android := "motemen",
-            useProguard in Android := false /* true */
+            useProguard in Android := true
         ) ++
         Seq(
             startEmulator <<= (startEmulator in Android) dependsOn (installEmulator in Android) dependsOn (packageDebug in Android),
@@ -30,7 +30,8 @@ object Common {
         AndroidTest.settings ++
         // AndroidTest.androidSettings ++
         Seq(
-            useProguard in Android := false /* true */,
+            useProguard in Android := true,
+            logLevel := Level.Debug,
             proguardOption in Android := (
                 "-keep public class * implements org.scalatest.junit.ShouldMatchersForJUnit" ::
                 "-keep public class org.scalatest.**" ::
