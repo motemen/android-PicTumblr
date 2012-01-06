@@ -32,6 +32,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     val entries = new Queue[Entry]();
 
     var offset : Int = 0
+    var dashboardLoading : Boolean = false
 
     override def onCreate (savedInstanceState : android.os.Bundle) {
         super.onCreate(savedInstanceState)
@@ -52,14 +53,17 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
             override def onPostExecute (result : Either[Throwable, Unit]) = {
                 result match {
                     case Right(_) => {
-                        createLoadDashboardTask(dialog = loadingDialog).execute(0)
+                        runLoadDashboardTask(offset = 0, dialog = loadingDialog)
                     }
 
                     // TODO: check error type
                     case Left(error) => {
                         error.printStackTrace()
                         Log.w(TAG, error.toString())
-                        startOAuth()
+                        Toast.makeText(PicTumblrActivity2.this, error.toString(), Toast.LENGTH_SHORT).show()
+                        if (error.isInstanceOf[TumblrAuthException]) {
+                            startOAuth()
+                        }
                     }
                 }
             }
@@ -111,38 +115,62 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
 
     def onDashboardLoad (loadedPosts : Seq[TumblrPhotoPost]) {
         Log.d(TAG, "loaded: " + loadedPosts.map { _.id }.mkString(","))
+        Toast.makeText(this, "Dashboard loaded.", Toast.LENGTH_SHORT).show()
 
         val newEntries = loadedPosts.map { Entry(_, null, null) }
 
-        for ((entry, i) <- newEntries.zipWithIndex) {
-            val imageContainer = addNewImageContainer()
-            entry.task = createLoadPhotoTask(entry, imageContainer)
-            entry.task.execute()
+        val it = newEntries.toIterator
+
+        def loadNextPhoto () {
+            if (it.hasNext) {
+                val entry = it.next()
+                val imageContainer = addNewImageContainer()
+                entry.task = createLoadPhotoTask(entry, imageContainer, loadNextPhoto)
+                entry.task.execute()
+            }
         }
 
+        loadNextPhoto()
+        loadNextPhoto()
+        loadNextPhoto()
+
         entries ++= newEntries
-        offset += entries.length
+        offset += newEntries.length
         Log.d(TAG, "offset=" + offset)
 
         updateCaption()
+    }
+
+    def runLoadDashboardTask (offset : Int, dialog : android.app.ProgressDialog = null) {
+        if (dashboardLoading == false) {
+            dashboardLoading = true
+            Toast.makeText(this, "Loading dashboard offset=" + offset, Toast.LENGTH_SHORT).show()
+            createLoadDashboardTask(dialog = dialog).execute(offset)
+        }
     }
 
     def createLoadDashboardTask (dialog : android.app.ProgressDialog = null) : LoadDashboardTask2 = {
         new LoadDashboardTask2(
             tumblr  = tumblr,
             onLoad  = (loadedPosts : Seq[TumblrPhotoPost]) => {
+                dashboardLoading = false
                 if (dialog != null) dialog.dismiss()
                 onDashboardLoad(loadedPosts)
             },
             onError = (error : Throwable) => {
+                dashboardLoading = false
+                if (dialog != null) dialog.dismiss()
                 error.printStackTrace()
-                Log.w(TAG, error.getMessage())
-                startOAuth() // TODO check error type
+                Log.w(TAG, error.toString())
+                Toast.makeText(PicTumblrActivity2.this, error.toString(), Toast.LENGTH_SHORT).show()
+                if (error.isInstanceOf[TumblrAuthException]) {
+                    startOAuth()
+                }
             }
         )
     }
 
-    def createLoadPhotoTask (entry : Entry, imageContainer : ViewGroup) : LoadPhotoTask2 = {
+    def createLoadPhotoTask (entry : Entry, imageContainer : ViewGroup, onLoad : () => Unit = null) : LoadPhotoTask2 = {
         new LoadPhotoTask2(
             maxWidth = maxWidth,
             imageContainer = imageContainer,
@@ -152,6 +180,10 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
 
                 val imageView = new ForgetfulBitmapImageView(entry, PicTumblrActivity2.this)
                 imageContainer.addView(imageView)
+
+                if (onLoad != null) {
+                    onLoad()
+                }
             }
         )
     }
@@ -188,7 +220,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     def loadNewPosts () {
         var index = getCurrentIndex()
         if (entries.length - index <= forwardOffset) {
-            createLoadDashboardTask().execute(offset)
+            runLoadDashboardTask(offset = offset)
         }
     }
 

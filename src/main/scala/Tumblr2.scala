@@ -52,13 +52,13 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
 
         oauthConsumer.sign(request)
 
-        Log.v(TAG, "dashboard requestLine=" + request.getRequestLine())
+        Log.d(TAG, "dashboard requestLine=" + request.getRequestLine())
 
         val response   = httpClient.execute(request)
         val statusLine = response.getStatusLine()
         val statusCode = statusLine.getStatusCode()
 
-        Log.v(TAG, "dashboard statusLine=" + statusLine)
+        Log.d(TAG, "dashboard statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
             val is = new BufferedHttpEntity(response.getEntity()).getContent()
@@ -67,7 +67,7 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
             Log.v(TAG, "dashboard JSON=" + json.toString(2))
             json
         } else {
-            throw new Exception(statusLine.toString())
+            throw new TumblrAuthException(statusLine.toString())
         }
     }
 
@@ -91,11 +91,11 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
         val statusLine = response.getStatusLine()
         val statusCode = statusLine.getStatusCode()
 
-        Log.v(TAG, "reblog statusLine=" + statusLine)
+        Log.d(TAG, "reblog statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
         } else {
-            throw new Exception(statusLine.toString())
+            throw new TumblrAuthException(statusLine.toString())
         }
     }
 
@@ -114,11 +114,11 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
         val statusLine = response.getStatusLine()
         val statusCode = statusLine.getStatusCode()
 
-        Log.v(TAG, "like statusLine=" + statusLine)
+        Log.d(TAG, "like statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
         } else {
-            throw new Exception(statusLine.toString())
+            throw new TumblrAuthException(statusLine.toString())
         }
     }
 
@@ -139,7 +139,7 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
         val statusLine = response.getStatusLine()
         val statusCode = statusLine.getStatusCode()
 
-        Log.v(TAG, "userInfo statusLine=" + statusLine)
+        Log.d(TAG, "userInfo statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
             val is = new BufferedHttpEntity(response.getEntity()).getContent()
@@ -151,7 +151,7 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
                 Blog(android.net.Uri.parse(blogJSON.getString("url")), blogJSON.getString("name"))
             }.get
         } else {
-            throw new Exception(statusLine.toString())
+            throw new TumblrAuthException(statusLine.toString())
         }
     }
 }
@@ -194,4 +194,7 @@ class TumblrPhotoPost (val postJSON : JSONObject) {
     def largestPhotoWithMaxWidth (width : Int) : TumblrPhoto = {
         photos(0).filter { p => p.width <= width } maxBy { p => p.width }
     }
+}
+
+class TumblrAuthException (message : String) extends Exception(message) {
 }
