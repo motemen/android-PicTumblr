@@ -76,8 +76,7 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
             _.getJSONObject("response").getJSONArray("posts").map { new TumblrPhotoPost(_) }
         }
 
-    // TODO: catch exception
-    def reblog (post : TumblrPhotoPost) {
+    def reblog (post : TumblrPhotoPost) : Long = {
         val request = new HttpPost("http://api.tumblr.com/v2/blog/" + baseHostname + "/post/reblog")
         val httpParams = Seq(
             new BasicNameValuePair("id", post.id.toString()),
@@ -94,12 +93,16 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
         Log.d(TAG, "reblog statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
+            val is = new BufferedHttpEntity(response.getEntity()).getContent()
+            val string = IOUtils.toString(is)
+            val json = new JSONObject(string)
+            Log.v(TAG, "reblog JSON=" + json.toString(2))
+            json.getJSONObject("response").getLong("id")
         } else {
             throw new TumblrAuthException(statusLine.toString())
         }
     }
 
-    // TODO: catch exception
     def like (post : TumblrPhotoPost) {
         val request = new HttpPost("http://api.tumblr.com/v2/user/like")
         val httpParams = Seq(
@@ -115,6 +118,27 @@ class Tumblr2 (oauthConsumer : CommonsHttpOAuthConsumer, var baseHostname : Stri
         val statusCode = statusLine.getStatusCode()
 
         Log.d(TAG, "like statusLine=" + statusLine)
+
+        if (200 <= statusCode && statusCode < 300) {
+        } else {
+            throw new TumblrAuthException(statusLine.toString())
+        }
+    }
+
+    def deletePost (postId : Long) {
+        val request = new HttpPost("http://api.tumblr.com/v2/blog/" + baseHostname + "/post/delete")
+        val httpParams = Seq(
+            new BasicNameValuePair("id", postId.toString())
+        )
+        request.setEntity(new UrlEncodedFormEntity(httpParams))
+
+        oauthConsumer.sign(request)
+
+        val response   = httpClient.execute(request)
+        val statusLine = response.getStatusLine()
+        val statusCode = statusLine.getStatusCode()
+
+        Log.d(TAG, "delete statusLine=" + statusLine)
 
         if (200 <= statusCode && statusCode < 300) {
         } else {

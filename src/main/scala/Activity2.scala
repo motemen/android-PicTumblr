@@ -10,7 +10,9 @@ import android.util.Log
 
 import scala.collection.mutable.Queue
 
-case class Entry (post : TumblrPhotoPost, var task : LoadPhotoTask2, var bitmap : Bitmap)
+case class Entry (post : TumblrPhotoPost, var task : LoadPhotoTask2, var bitmap : Bitmap, var id : Long = 0) {
+    def reblogged : Boolean = { id != 0 }
+}
 
 class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     val TAG = "PicTumblrActivity2"
@@ -144,7 +146,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     def runLoadDashboardTask (offset : Int, dialog : android.app.ProgressDialog = null) {
         if (dashboardLoading == false) {
             dashboardLoading = true
-            Toast.makeText(this, "Loading dashboard offset=" + offset, Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Loading dashboard " + offset + "-" + (offset + 20), Toast.LENGTH_SHORT).show()
             createLoadDashboardTask(dialog = dialog).execute(offset)
         }
     }
@@ -193,6 +195,8 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
         val index = scrollX / displayWidth
         val delta = scrollX % displayWidth
 
+        Log.v(TAG, "getCurrentIndex: index=" + index + " delta=" + delta)
+
         if (delta != 0) {
             if (delta * 2 < displayWidth) {
                 steppedHorizontalScrollView.smoothScrollBy(-delta - displayWidth, 0)
@@ -208,8 +212,11 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
         return index
     }
 
+    def getCurrentEntry (delta : Int = 0) : Option[Entry]
+        = entries.get(getCurrentIndex() + delta)
+
     def getCurrentPost (delta : Int = 0) : Option[TumblrPhotoPost]
-        = entries.get(getCurrentIndex() + delta) map { _.post }
+        = getCurrentEntry(delta).map { _.post }
 
     def updateCaption (delta : Int = 0) {
         captionTextView.setText(
@@ -233,6 +240,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     val CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK = Menu.FIRST + 4
     val CONTEXT_MENU_ID_ITEM_REBLOG          = Menu.FIRST + 5
     val CONTEXT_MENU_ID_ITEM_LIKE            = Menu.FIRST + 6
+    val CONTEXT_MENU_ID_ITEM_UNDO_REBLOG     = Menu.FIRST + 7
 
     def TODO (what : String) {
         Log.w(TAG, "TODO: " + what)
@@ -258,13 +266,17 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     }
 
     override def onCreateContextMenu (menu : ContextMenu, v : android.view.View, menuInfo : ContextMenu.ContextMenuInfo) {
-        for ( post <- getCurrentPost() ) {
-            menu.setHeaderTitle(post.plainCaption)
+        for ( entry <- getCurrentEntry() ) {
+            menu.setHeaderTitle(entry.post.plainCaption)
             
-            val itemOpenTumblr    = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR,     Menu.NONE, "Open Tumblr Page")
-            val itemOpenPhotoLink = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK, Menu.NONE, "Open Photo Link")
-            val itemReblog        = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG,          Menu.NONE, "Reblog")
-            val itemLike          = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_LIKE,            Menu.NONE, "Like")
+            val itemOpenTumblr     = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_TUMBLR,     Menu.NONE, "Open Tumblr Page")
+            val itemOpenPhotoLink  = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK, Menu.NONE, "Open Photo Link")
+            if (!entry.reblogged) {
+                val itemReblog     = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_REBLOG,          Menu.NONE, "Reblog")
+            } else {
+                val itemUndoReblog = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_UNDO_REBLOG,     Menu.NONE, "Undo Reblog")
+            }
+            val itemLike           = menu.add(Menu.NONE, CONTEXT_MENU_ID_ITEM_LIKE,            Menu.NONE, "Like")
 
             super.onCreateContextMenu(menu, v, menuInfo)
         }
@@ -293,26 +305,46 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
             case CONTEXT_MENU_ID_ITEM_LIKE => {
                 doLikePost()
             }
+            case CONTEXT_MENU_ID_ITEM_UNDO_REBLOG => {
+                doUndoReblogPost()
+            }
         }
 
         return true
     }
 
     def doReblogPost () {
-        for ( post <- getCurrentPost() ) {
-            val task = new ReblogPostTask2(tumblr, {
+        Toast.makeText(this, "Reblogging...", Toast.LENGTH_SHORT).show()
+
+        for ( entry <- getCurrentEntry() ) {
+            val task = new ReblogPostTask2(tumblr, { (id : Long) =>
                 Toast.makeText(this, "Reblogged.", Toast.LENGTH_SHORT).show()
+                entry.id = id
             })
-            task.execute(post)
+            task.execute(entry.post)
         }
     }
 
     def doLikePost () {
+        Toast.makeText(this, "Liking...", Toast.LENGTH_SHORT).show()
+
         for ( post <- getCurrentPost() ) {
             val task = new LikePostTask2(tumblr, {
                 Toast.makeText(this, "Liked.", Toast.LENGTH_SHORT).show()
             })
             task.execute(post)
+        }
+    }
+
+    def doUndoReblogPost () {
+        Toast.makeText(this, "Undoing...", Toast.LENGTH_SHORT).show()
+
+        for ( entry <- getCurrentEntry() ) {
+            val task = new DeletePostTask2(tumblr, {
+                Toast.makeText(this, "Undone.", Toast.LENGTH_SHORT).show()
+                entry.id = 0
+            })
+            task.execute(entry.id)
         }
     }
 }
