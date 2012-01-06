@@ -42,7 +42,11 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
         setContentView(R.layout.main)
 
         setupSteppedHorizontalScrollView()
+        
+        startLoadingDashboard()
+    }
 
+    def startLoadingDashboard () {
         val loadingDialog = android.app.ProgressDialog.show(this, null, "Loading dashboard")
 
         val startTask = new AsyncTask0[java.lang.Void, Either[Throwable, Unit]] {
@@ -258,7 +262,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
 
     override def onOptionsItemSelected (menuItem : MenuItem) : Boolean = {
         menuItem.getItemId() match {
-            case MENU_ITEM_ID_REFRESH => TODO("clearAndGoBackDashboard")
+            case MENU_ITEM_ID_REFRESH => clearAndGoBackDashboard()
             case MENU_ITEM_ID_SETTING => startActivity(new Intent(this, classOf[PicTumblrPrefernceActivity]))
         }
 
@@ -346,5 +350,15 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
             })
             task.execute(entry.id)
         }
+    }
+
+    def clearAndGoBackDashboard () {
+        captionTextView.setText(getText(R.string.default_caption))
+        offset = 0
+        entries.clear()
+        imagesContainer.removeAllViews()
+        dashboardLoading = false
+
+        startLoadingDashboard()
     }
 }
