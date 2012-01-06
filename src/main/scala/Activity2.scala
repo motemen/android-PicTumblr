@@ -251,12 +251,12 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
                 }
             }
             case CONTEXT_MENU_ID_ITEM_OPEN_PHOTO_LINK => {
-                for ( post <- getCurrentPost(); photo <- post.photos.headOption; largestPhoto <- photo.headOption ) {
-                    openUrl(largestPhoto.url)
+                for ( post <- getCurrentPost() ) {
+                    openUrl(post.linkUrl)
                 }
             }
             case CONTEXT_MENU_ID_ITEM_REBLOG => {
-                TODO("doReblogPost")
+                doReblogPost()
             }
             case CONTEXT_MENU_ID_ITEM_LIKE => {
                 doLikePost()

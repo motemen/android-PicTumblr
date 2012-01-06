@@ -170,6 +170,7 @@ class TumblrPhotoPost (val postJSON : JSONObject) {
     lazy val id        = postJSON.getLong("id")
     lazy val reblogKey = postJSON.getString("reblog_key")
     lazy val postUrl   = postJSON.getString("post_url")
+    lazy val linkUrl   = postJSON.getString("link_url")
     lazy val caption   = postJSON.getString("caption")
 
     lazy val plainCaption : String = {
