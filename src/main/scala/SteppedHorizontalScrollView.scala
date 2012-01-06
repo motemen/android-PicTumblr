@@ -72,5 +72,7 @@ class SteppedHorizontalScrollView (context : android.content.Context, attrs : an
                 }
             }
         }
-    );
+    )
+
+    setHorizontalScrollBarEnabled(false)
 }
