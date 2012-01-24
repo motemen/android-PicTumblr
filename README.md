@@ -14,6 +14,7 @@ Requirements:
 * [Android SDK](http://developer.android.com/sdk/index.html)
 * [sbt](https://github.com/harrah/xsbt) 0.11.1
 
+Follow these steps:
 
 1. Visit [http://www.tumblr.com/oauth/apps](www.tumblr.com/oauth/apps) and register your app to aquire OAuth tokens.
 
