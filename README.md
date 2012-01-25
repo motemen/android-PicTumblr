@@ -12,7 +12,9 @@ HOW TO BUILD FROM SOURCE
 Requirements:
 
 * [Android SDK](http://developer.android.com/sdk/index.html)
-* [sbt](https://github.com/harrah/xsbt) 0.11.1
+* [sbt](https://github.com/harrah/xsbt) 0.11.2
+* [android-plugin](https://github.com/jberkel/android-plugin) 0.6.1-SNAPSHOT
+  * clone it and run `sbt publish-local`
 
 Follow these steps:
 
