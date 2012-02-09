@@ -139,6 +139,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
         loadNextPhoto()
         loadNextPhoto()
         loadNextPhoto()
+        loadNextPhoto()
 
         entries ++= newEntries
         offset += newEntries.length
@@ -150,7 +151,9 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
     def runLoadDashboardTask (offset : Int, dialog : android.app.ProgressDialog = null) {
         if (dashboardLoading == false) {
             dashboardLoading = true
-            Toast.makeText(this, "Loading dashboard " + offset + "-" + (offset + 20), Toast.LENGTH_SHORT).show()
+            if (dialog == null) {
+                Toast.makeText(this, "Loading dashboard " + (offset + 1) + "-" + (offset + 20), Toast.LENGTH_SHORT).show()
+            }
             createLoadDashboardTask(dialog = dialog).execute(offset)
         }
     }
@@ -159,19 +162,19 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
         new LoadDashboardTask2(
             tumblr  = tumblr,
             onLoad  = (loadedPosts : Seq[TumblrPhotoPost]) => {
-                dashboardLoading = false
-                if (dialog != null) dialog.dismiss()
                 onDashboardLoad(loadedPosts)
             },
             onError = (error : Throwable) => {
-                dashboardLoading = false
-                if (dialog != null) dialog.dismiss()
                 error.printStackTrace()
                 Log.w(TAG, error.toString())
                 Toast.makeText(PicTumblrActivity2.this, error.toString(), Toast.LENGTH_SHORT).show()
                 if (error.isInstanceOf[TumblrAuthException]) {
                     startOAuth()
                 }
+            },
+            onComplete = () => {
+                dashboardLoading = false
+                if (dialog != null) dialog.dismiss()
             }
         )
     }
@@ -322,7 +325,7 @@ class PicTumblrActivity2 extends TypedActivity with TumblrOAuthable {
 
         for ( entry <- getCurrentEntry() ) {
             val task = new ReblogPostTask2(tumblr, { (id : Long) =>
-                Toast.makeText(this, "Reblogged.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Reblogged " + entry.post.plainCaption + ".", Toast.LENGTH_SHORT).show()
                 entry.id = id
             })
             task.execute(entry.post)

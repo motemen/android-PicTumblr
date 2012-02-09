@@ -5,7 +5,8 @@ import android.util.Log
 class LoadDashboardTask2 (
         tumblr  : Tumblr2,
         onLoad  : (Seq[TumblrPhotoPost]) => Unit,
-        onError : (Throwable) => Unit
+        onError : (Throwable) => Unit,
+        onComplete : () => Unit
     )
     extends AsyncTask1[Int, java.lang.Void, Either[Throwable, Seq[TumblrPhotoPost]]] {
 
@@ -32,5 +33,7 @@ class LoadDashboardTask2 (
                 onLoad(posts)
             }
         }
+
+        onComplete()
     }
 }
